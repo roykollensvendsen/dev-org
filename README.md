@@ -16,11 +16,19 @@ The chosen implementation baseline is Python 3.14, FastAPI, and Pydantic 2.
 The first implementation milestone is a small, runnable end-to-end slice, as
 defined by the specification's delivery plan.
 
-The command line exists as a skeleton and does nothing yet:
+The command line exists as a skeleton and runs the fast checks:
 
 ```console
-$ dev-org
-dev-org: nothing to do yet
+$ dev-org check
+All checks passed!
+```
+
+`dev-org init` is the engine-independent startup operation described in the
+specification; it is not implemented yet:
+
+```console
+$ dev-org init
+dev-org init: not implemented yet; issue #4 defines the startup contract
 ```
 
 <!-- not run: setup instructions for a fresh clone -->
