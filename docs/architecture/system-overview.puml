@@ -1,0 +1,101 @@
+@startuml
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam wrapWidth 190
+
+actor "Human" as Human
+component "Dashboard / web UI" as Dashboard
+component "Voice or chat app\nMCP client" as Voice
+
+component "Worker agent\nagent adapter + engine in sandbox" as Worker
+component "External agent system\noptional A2A" as ExternalAgent
+component "GitHub Issues webhook" as GitHubEvents
+component "GitHub Actions webhook" as ActionsEvents
+
+component "dev-org control service" as Control {
+  portin "REST / API" as p_api
+  portin "MCP" as p_mcp
+  portin "Worker API" as p_worker
+  portin "Webhook" as p_webhook
+  portin "A2A · optional" as p_a2a
+
+  portout "Persistence" as p_persistence
+  portout "WorkTracking" as p_worktracking
+  portout "Git / PR" as p_git
+  portout "CI status" as p_ci
+  portout "ExecutionBackend" as p_runtime
+  portout "Artifacts" as p_artifact
+
+  component "REST, webhook and MCP adapters" as Ingress
+  component "Identity · policy" as Access
+  component "Access insight\nread-only policy queries" as AccessView
+  component "Organization core\ntasks · leases · messages" as Core
+  component "Insight queries" as Insights
+  component "Integration gateway" as Gateway
+
+  p_api --> Ingress
+  p_mcp --> Ingress
+  p_worker --> Ingress
+  p_webhook --> Ingress
+  p_a2a --> Ingress
+  Ingress --> Access
+  Ingress --> AccessView
+  AccessView --> Access
+  AccessView --> p_persistence : audit log
+  Access --> Core
+  Access --> Insights
+  Core --> Gateway
+  Core --> p_persistence
+  Insights --> p_persistence
+  Core --> p_runtime
+  Core --> p_artifact
+  Gateway --> p_worktracking
+  Gateway --> p_git
+  Gateway --> p_ci
+}
+
+component "PostgreSQL adapter" as PgAdapter
+database "PostgreSQL" as PostgreSQL
+component "GitHub Projects/Issues adapter" as BoardAdapter
+component "Local file-based board adapter" as LocalBoard
+folder "Local board files" as LocalFiles
+component "GitHub Git/PR adapter" as GitAdapter
+component "GitHub Actions adapter" as CIAdapter
+component "Podman ExecutionBackend" as RuntimeAdapter
+component "Artifact adapter" as ArtifactAdapter
+component "GitHub Projects/Issues API" as GitHubBoardApi
+component "GitHub repo/PR API" as GitHubRepoApi
+component "GitHub Actions API" as GitHubActionsApi
+
+Human --> Dashboard
+Dashboard --> p_api
+Human --> Voice
+Voice --> p_mcp
+Worker --> p_worker
+Worker --> p_mcp : tool calls
+ExternalAgent ..> p_a2a : later
+GitHubEvents --> p_webhook
+ActionsEvents --> p_webhook
+
+p_persistence --> PgAdapter
+PgAdapter --> PostgreSQL
+p_worktracking --> BoardAdapter
+p_worktracking --> LocalBoard
+BoardAdapter --> GitHubBoardApi
+LocalBoard --> LocalFiles
+p_git --> GitAdapter
+GitAdapter --> GitHubRepoApi
+p_ci --> CIAdapter
+CIAdapter --> GitHubActionsApi
+p_runtime --> RuntimeAdapter
+RuntimeAdapter --> Worker : sandbox lifecycle
+p_artifact --> ArtifactAdapter
+
+note bottom of Control
+  Inbound ports are on the top edge.
+  Outbound ports are on the bottom edge.
+  Ports are contracts; adapters handle protocols and providers.
+end note
+
+@enduml
