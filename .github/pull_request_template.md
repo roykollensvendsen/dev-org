@@ -21,6 +21,9 @@
       before, in words somebody who has never seen this project could follow.
       Everything above the details section states that intent and what changed,
       without requiring a file name, setting or abbreviation to be explained.
+- [ ] The PR body ends with a `Closes #N` line naming the issue it delivers, so
+      GitHub links the two and closes the issue on merge. A `closes #3` in the
+      title alone does nothing.
 - [ ] Every rule this change adds names the check, CI job or review step that
       enforces it, or says plainly that it is not enforced yet and when it will be.
 - [ ] The specification changed before the code, or this change only implements

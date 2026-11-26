@@ -199,6 +199,11 @@ Five parts, in this order:
    the rules no script can measure, so a ticked box that is not true is worse
    than an empty repository.
 
+The body must end with a `Closes #N` line naming the issue this PR delivers.
+GitHub reads closing keywords from the body or a commit message, never from
+the title; a title that says "closes #3" links nothing and leaves the issue
+open.
+
 Do not restate what continuous integration reports on the same page. Do not
 list the commands you ran.
 
