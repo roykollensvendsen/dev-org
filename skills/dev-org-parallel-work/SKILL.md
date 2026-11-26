@@ -26,4 +26,6 @@ Use this skill to keep concurrent repository work independent, testable, and eas
 
 Verify the affected component and contract, then verify the actual combined change with the repository's documented checks. Do not claim a check ran unless it did. Report changed behavior, shared contracts, verification evidence, remaining blockers, and integration risks. Use observed queue time, conflict/rework rate, integration failures, and CI wait to identify the next bottleneck; do not use agent count as a proxy for throughput.
 
+After a merge, delete the branch locally and run `git fetch --prune` so a stale `origin/<branch>` reference does not linger: GitHub may already have removed the branch, but the local remote-tracking reference outlives it and `git branch -r` will keep showing it until pruned. A merged branch left behind is dead weight the next worker has to tell apart from live work.
+
 If advice in this skill conflicts with the system specification, follow the specification and report the mismatch for correction.
