@@ -11,6 +11,7 @@ These are short, repository-specific working rules. The requirements on architec
 - Prefer small, runnable end-to-end deliveries. The MVP is a modular monolith; do not create a new service or abstraction without a documented need and real consumers.
 - Do not let concurrent workers edit the same files or change the same contract without coordination. Designate one temporary responsible for a shared contract, agree compatibility and test first, and let others work against the contract with test doubles.
 - Use isolated working copies/branches for parallel deliveries. Integrate small changes often, and verify the combination to be merged with the project's documented checks.
+- Delete a branch after its PR is merged: locally in the working copy, and on the remote if GitHub has not already removed it. A merged branch left behind is dead weight that the next worker has to tell apart from live work.
 - If a dependency, test resource, or interface blocks the work, record the concrete obstruction and propose the smallest clarification. Do not create a competing contract or hide a blockage with a stopgap.
 - In the delivery report state the change, the affected contracts, the checks that actually ran, the result, and the remaining risk. Do not claim something is verified without evidence.
 - Use the [skill for parallel dev-org work](skills/dev-org-parallel-work/SKILL.md) for tasks across modules or work done at the same time by several agents.

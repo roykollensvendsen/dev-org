@@ -31,6 +31,7 @@ Do not create a new abstraction just to distribute work. Use existing ports; the
 ## Integrate continuously
 
 - Keep changes small and branches short. Integrate as soon as the acceptance criteria are met.
+- Delete the branch after it is merged: locally in the working copy, and on the remote if GitHub has not already removed it. A merged branch left behind is dead weight that the next worker has to tell apart from live work.
 - Run relevant component and contract checks early. Run the integration check on the actual combination to be merged; widen the test selection on unknown impact.
 - Cancel stale builds and test jobs no consumer needs. Do not let the CI queue or a shared test resource fill with duplicates.
 - On conflict, stop overlapping writing, choose one responsible for the merge, and update dependencies. Do not resolve a conflict by overwriting unknown work.
