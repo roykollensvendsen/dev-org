@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Navigerbar arkitekturoversikt for dev-org">
+  <title>dev-org · arkitektureksplorer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fb;
+      --surface: #fff;
+      --ink: #182230;
+      --muted: #5d6b7a;
+      --line: #7890a8;
+      --border: #cbd5e1;
+      --accent: #1456a0;
+      --accent-soft: #e9f2ff;
+      --shadow: 0 8px 28px #14223512;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111821;
+        --surface: #1a2430;
+        --ink: #edf3fa;
+        --muted: #a9b6c5;
+        --line: #8199b2;
+        --border: #3b4b5e;
+        --accent: #8fc0ff;
+        --accent-soft: #233951;
+        --shadow: 0 8px 28px #0005;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header, main, footer { width: min(1440px, 100% - 40px); margin-inline: auto; }
+    header { padding: 28px 0 10px; }
+    h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 3vw, 2.1rem); }
+    h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    p { margin: 8px 0; }
+    .lede { color: var(--muted); max-width: 75ch; }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 16px 0 12px; }
+    button, a.button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 11px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    button:hover, a.button:hover { border-color: var(--accent); color: var(--accent); }
+    button:focus-visible, a:focus-visible, svg g[role="button"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    #breadcrumbs { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; color: var(--muted); }
+    #breadcrumbs button { border: 0; background: transparent; padding: 3px 5px; color: var(--accent); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+    .canvas, .details {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+    .canvas { overflow: auto; padding: 12px; }
+    #diagram { display: block; width: 100%; min-width: 820px; height: auto; }
+    .details { padding: 18px; position: sticky; top: 12px; }
+    .details p, .details li { color: var(--muted); }
+    .details ul { padding-left: 20px; }
+    .details a { color: var(--accent); }
+    .node { cursor: pointer; }
+    .node rect { fill: var(--surface); stroke: var(--border); stroke-width: 2; rx: 12; }
+    .node text { fill: var(--ink); font-size: 17px; font-weight: 650; text-anchor: middle; }
+    .node .hint { fill: var(--muted); font-size: 12px; font-weight: 450; }
+    .node.clickable { cursor: pointer; }
+    .node:hover rect, .node.selected rect { stroke: var(--accent); fill: var(--accent-soft); }
+    .node .drill { fill: var(--accent); font-size: 11px; font-weight: 600; }
+    .edge { stroke: var(--line); stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    .edge.dashed { stroke-dasharray: 7 6; }
+    .edge-label { fill: var(--muted); font-size: 12px; text-anchor: middle; }
+    .diagram-title { fill: var(--ink); font-size: 21px; font-weight: 700; }
+    .diagram-subtitle { fill: var(--muted); font-size: 14px; }
+    .note { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--accent-soft); border-radius: 4px; color: var(--muted); }
+    footer { padding: 20px 0 32px; color: var(--muted); font-size: .9rem; }
+    @media (max-width: 900px) {
+      header, main, footer { width: min(100% - 24px, 1440px); }
+      .layout { grid-template-columns: 1fr; }
+      .details { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>dev-org · arkitektureksplorer</h1>
+    <p class="lede">Start med systemoversikten. Klikk på en modul for å gå inn i detaljene; bruk brødsmulestien eller «Tilbake» for å gå opp igjen. Diagrammene forklarer strukturen, mens spesifikasjonen er fasit for kravene.</p>
+    <div class="toolbar">
+      <button id="back" type="button" aria-label="Gå ett nivå opp">← Tilbake</button>
+      <nav id="breadcrumbs" aria-label="Brødsmulesti"></nav>
+      <a class="button" href="system-diagrams.md">Diagramkilder og spesifikasjon</a>
+    </div>
+  </header>
+  <main>
+    <section class="layout" aria-label="Interaktivt arkitekturdiagram">
+      <div class="canvas"><svg id="diagram" viewBox="0 0 1200 680" role="group" aria-labelledby="svg-title svg-desc"></svg></div>
+      <aside id="details" class="details" aria-live="polite"></aside>
+    </section>
+  </main>
+  <footer>
+    <p>Statisk side uten eksterne biblioteker eller serverkall. Alle lenker er relative, slik at siden kan åpnes fra repoet og publiseres under en GitHub Pages-prosjektsti.</p>
+  </footer>
+
+  <script>
+    const spec = "../../dev-org-spesifikasjon.md";
+    const diagrams = "system-diagrams.md";
+    const pages = {
+      overview: {
+        title: "Systemoversikt",
+        subtitle: "Hvem kobler seg til dev-org, og hvilke eksterne systemer bruker det?",
+        parent: null,
+        nodes: [
+          { id: "people", x: 35, y: 85, w: 220, h: 90, lines: ["Mennesker", "dashboard og API"], description: "Mennesker bruker webflaten eller API-et med egen identitet. De kan også koble seg til innsikt gjennom MCP.", links: [["Menneske- og agentgrensesnitt", spec + "#menneske--og-agentgrensesnitt"]] },
+          { id: "agents", x: 340, y: 85, w: 235, h: 90, lines: ["Agent- og stemmeklienter", "MCP eller API"], description: "Klienter går direkte til MCP eller API. MCP er en verktøyinngang, ikke en egen sannhetskilde.", links: [["MCP-kontrakt", spec + "#menneske--og-agentgrensesnitt"]] },
+          { id: "workers", x: 665, y: 85, w: 220, h: 90, lines: ["Arbeidernoder", "agent i sandbox"], description: "Workers henter oppdrag via kontrollplanet. Agentmotoren kjører isolert og får ikke kontrolltjenestens hemmeligheter.", links: [["Noder og worker-grenser", spec + "#71-kontrollplan-og-arbeidernoder"]], view: "workers" },
+          { id: "externalAgents", x: 970, y: 85, w: 195, h: 90, lines: ["Eksterne agenter", "valgfri A2A"], description: "A2A er en senere, valgfri inngang. Eksterne identiteter må knyttes til tillitsprofil før de kan påvirke arbeid.", links: [["Eksterne agentidentiteter", spec + "#32-policy-fullmakter-og-håndheving"]] },
+          { id: "control", x: 365, y: 285, w: 470, h: 125, lines: ["dev-org kontrollplan", "identitet · policy · oppdrag · hendelser", "klikk for moduler og porter"], description: "Kontrollplanet eier oppdragsstatus, policy, eierskap og arbeidsflyt. Gå inn for å se modulgrensene.", view: "control", links: [["Komponentoversikt", diagrams + "#komponenter-og-ansvar"]] },
+          { id: "github", x: 40, y: 535, w: 255, h: 90, lines: ["GitHub", "backlog · PR · CI"], description: "GitHub er autoritativt for den eksternt koblede MVP-piloten. Mutasjoner går via gatewayen.", links: [["Board og adaptere", spec + "#4-oppstart-og-utskiftbare-integrasjoner"]] },
+          { id: "state", x: 400, y: 535, w: 250, h: 90, lines: ["Varig tilstand", "PostgreSQL i MVP"], description: "Kontrollplanet bevarer oppdrag, leases, hendelser, godkjenninger og operasjonsjournal.", links: [["MVP-kjøremodell", spec + "#101-teknologistakk-og-kjøremodell"]] },
+          { id: "runtime", x: 765, y: 535, w: 290, h: 90, lines: ["Kjøremiljø og artefakter", "Podman · Git · sjekkpunkt"], description: "Arbeidsområder og sjekkpunkter isoleres og flyttes gjennom kontrollerte backender og artefaktlagre.", view: "workers", links: [["Sandbox", spec + "#33-kjøremiljø-og-sandbox"]] }
+        ],
+        edges: [
+          ["people", "control"], ["agents", "control"], ["workers", "control"], ["externalAgents", "control", "dashed"],
+          ["control", "github"], ["control", "state"], ["control", "runtime"]
+        ]
+      },
+      control: {
+        title: "Kontrollplanets moduler",
+        subtitle: "Portene tar imot kall; modulene håndhever arbeidsflyten; gatewayen utfører eksterne mutasjoner.",
+        parent: "overview",
+        nodes: [
+          { id: "ingress", x: 420, y: 45, w: 260, h: 86, lines: ["Innganger", "REST · MCP · Worker · Webhook"], description: "Protokolladapterne oversetter eksterne kall til kontrollplanets brukstilfeller. De håndhever ikke egne rettigheter.", links: [["Porter og adaptere", diagrams + "#porter-og-adaptere"]] },
+          { id: "identity", x: 70, y: 225, w: 265, h: 92, lines: ["Identitet og policy", "PDP · mandat · avgjørelse"], description: "Bygger verifisert aktørkontekst og evaluerer hver konkret handling. Ukjent eller utilstrekkelig grunnlag avslås.", view: "access", links: [["Policy og fullmakter", spec + "#32-policy-fullmakter-og-håndheving"]] },
+          { id: "core", x: 465, y: 225, w: 265, h: 92, lines: ["Organisasjonskjerne", "oppdrag · kø · lease"], description: "Planlegger fra backlog, fordeler arbeid, eier oppdragsflyten og ber gatewayen om eksterne endringer.", view: "task", links: [["Utførelse og livssyklus", spec + "#5-utførelse-venting-og-gjenopptak"]] },
+          { id: "gateway", x: 860, y: 225, w: 265, h: 92, lines: ["Integrasjonsgateway", "eksterne sideeffekter"], description: "Gatewayen er eneste kontrollplantjeneste som kaller muterende adapteroperasjoner. Den kontrollerer policy og aktivt eierskap.", view: "integrations", links: [["Gateway-regler", spec + "#32-policy-fullmakter-og-håndheving"]] },
+          { id: "access", x: 70, y: 435, w: 265, h: 92, lines: ["Rettighetsinnsyn", "lesende policyspørringer"], description: "Lar aktører lese effektiv tilgang og forhåndsvurdere en handling. Svaret er ikke en tillatelse; utførelse evalueres på nytt.", view: "access", links: [["Rettighetsinnsyn", diagrams + "#rettighetsinnsyn"]] },
+          { id: "events", x: 465, y: 435, w: 265, h: 92, lines: ["Tilstand og hendelser", "sporbarhet · sjekkpunkt"], description: "Varig tilstand og hendelser støtter revisjon, idempotent retry, venting og overlevering.", links: [["Sporbarhet", spec + "#8-logging-sporbarhet-innsyn-og-optimalisering"]] },
+          { id: "adapters", x: 860, y: 435, w: 265, h: 92, lines: ["Utgående adaptere", "board · Git · CI · runtime"], description: "Adapterne oversetter versjonerte porter til konkrete tjenester. Bare gatewayen utfører muterende operasjoner.", view: "integrations", links: [["Adapterkontrakter", diagrams + "#porter-og-adaptere"]] }
+        ],
+        edges: [["ingress", "identity"], ["ingress", "core"], ["identity", "core"], ["identity", "access"], ["core", "events"], ["core", "gateway"], ["gateway", "adapters"], ["access", "events", "dashed"]]
+      },
+      task: {
+        title: "Oppdragets livssyklus",
+        subtitle: "Oppdragets tilstand er varig og uavhengig av agentmotorens interne samtale.",
+        parent: "control",
+        nodes: [
+          { id: "ready", x: 55, y: 200, w: 190, h: 85, lines: ["Klar"], description: "Autorisert mål, kriterier og avhengigheter er klare for tildeling." },
+          { id: "working", x: 300, y: 200, w: 205, h: 85, lines: ["Under arbeid"], description: "Ett forsøk har én aktiv eier og en tidsbegrenset lease med fencing token." },
+          { id: "waiting", x: 565, y: 200, w: 190, h: 85, lines: ["Venter"], description: "Ventebetingelse, siste sjekkpunkt og neste handling er lagret." },
+          { id: "resume", x: 815, y: 200, w: 205, h: 85, lines: ["Klar til ny behandling"], description: "Relevant hendelse har oppfylt betingelsen. Samme hendelse gir høyst én aktiv fortsettelse." },
+          { id: "done", x: 850, y: 410, w: 205, h: 85, lines: ["Fullført"], description: "Avtalte kriterier er oppfylt og resultatet kan etterprøves." },
+          { id: "paused", x: 365, y: 410, w: 240, h: 85, lines: ["Pauset eller avsluttet"], description: "Beslutning, grunn og eventuelle gjenopptaksvilkår er registrert." }
+        ],
+        edges: [["ready", "working", "tildel"], ["working", "waiting", "vent"], ["waiting", "resume", "hendelse"], ["resume", "working", "fortsett"], ["working", "done", "verifiser"], ["ready", "paused", "stopp"], ["working", "paused", "stopp"], ["waiting", "paused", "stopp"], ["paused", "ready", "gjenoppta"]]
+      },
+      access: {
+        title: "Tilgang og policy",
+        subtitle: "Se rettigheter og få en forklaring uten å utføre handlingen.",
+        parent: "control",
+        nodes: [
+          { id: "caller", x: 55, y: 205, w: 190, h: 90, lines: ["Aktør", "identitet + kontekst"], description: "Hvert kall bruker verifisert identitet, prosjektomfang og relevant oppdragskontekst." },
+          { id: "query", x: 315, y: 205, w: 210, h: 90, lines: ["Tilgangsspørring", "egen eller konkret handling"], description: "get_effective_access viser egen effektiv tilgang. evaluate_action gir en ikke-bindende vurdering av en spesifikk handling." },
+          { id: "scope", x: 595, y: 205, w: 220, h: 90, lines: ["Omfangssjekk", "innsyn i andre krever rett"], description: "Innsyn i annen identitet eller rolle krever access.inspect_others og samme prosjektavgrensning." },
+          { id: "policy", x: 885, y: 205, w: 220, h: 90, lines: ["Policybeslutning", "tillat · avslå · godkjenning"], description: "Policy avgjør mot gjeldende regelversjon og returnerer grunn, vilkår og beslutningstid." },
+          { id: "answer", x: 420, y: 440, w: 245, h: 90, lines: ["Forklaring", "omfang · vilkår · versjon"], description: "Svar viser ikke hemmeligheter. Tilgangsforespørsler logges. Forhåndssvar gir aldri rett til senere utførelse." },
+          { id: "enforce", x: 820, y: 440, w: 245, h: 90, lines: ["Håndhev ved bruk", "evaluer på nytt"], description: "Ved faktisk handling sjekker gateway eller kjøremiljø gjeldende policy, lease og bevis på nytt." }
+        ],
+        edges: [["caller", "query"], ["query", "scope"], ["scope", "policy"], ["policy", "answer"], ["answer", "enforce", "ikke en tillatelse"]]
+      },
+      workers: {
+        title: "Worker og kjøremiljø",
+        subtitle: "Agenten jobber isolert; kontrollplanet eier oppdrag, policy og publisering.",
+        parent: "overview",
+        nodes: [
+          { id: "control", x: 430, y: 65, w: 250, h: 90, lines: ["Kontrollplan", "tildeler og utsteder lease"], description: "Worker henter arbeid via versjonert API og mottar tidsbegrenset lease og fencing token." },
+          { id: "worker", x: 430, y: 240, w: 250, h: 90, lines: ["Worker", "nodeidentitet · heartbeat"], description: "Nodeidentitet er prosjektavgrenset. Worker fornyer lease og sikrer sjekkpunkt ved overlevering." },
+          { id: "sandbox", x: 430, y: 415, w: 250, h: 90, lines: ["Sandbox", "agentmotor · isolert repo"], description: "Agenten får skrive i avgrenset arbeidsområde, men ikke kontrollplantilstand eller tjenestehemmeligheter." },
+          { id: "gateway", x: 820, y: 240, w: 250, h: 90, lines: ["Gateway", "sjekker token før sideeffekt"], description: "Publisering og eksterne mutasjoner krever gjeldende mandat og aktivt fencing token.", view: "integrations" },
+          { id: "checkpoint", x: 40, y: 415, w: 250, h: 90, lines: ["Sjekkpunkt", "kode · bevis · neste handling"], description: "Sjekkpunktet er motoruavhengig og har integritetskontroll. Det kan brukes av en annen node eller motor.", links: [["Overleveringsdiagram", diagrams + "#lease-og-overlevering-mellom-noder"]] }
+        ],
+        edges: [["control", "worker", "claim"], ["worker", "sandbox", "start"], ["sandbox", "gateway", "sideeffekt"], ["sandbox", "checkpoint", "sikre"], ["checkpoint", "control", "overlever"]]
+      },
+      integrations: {
+        title: "Eksterne mutasjoner",
+        subtitle: "En felles håndhevingsvei beskytter board, Git, CI og andre eksterne mål.",
+        parent: "control",
+        nodes: [
+          { id: "core", x: 55, y: 230, w: 210, h: 90, lines: ["Kjernebrukstilfelle", "ber om endring"], description: "Kjernen eier arbeidsflyten og sender en avgrenset operasjonsforespørsel." },
+          { id: "gateway", x: 345, y: 230, w: 220, h: 90, lines: ["Gateway", "policy · lease · bevis"], description: "Eneste kontrollplantjeneste som kaller muterende adapteroperasjoner. Bruker stabil operasjonsnøkkel og avstemmer usikre resultater." },
+          { id: "adapter", x: 650, y: 230, w: 220, h: 90, lines: ["Adapter", "leverandørkontrakt"], description: "Oversetter godkjent operasjon til board-, Git-, CI- eller annen tjenesteprotokoll." },
+          { id: "provider", x: 950, y: 230, w: 210, h: 90, lines: ["Ekstern tjeneste", "GitHub / CI / board"], description: "Resultatet kobles tilbake til operasjonsjournalen og oppdragets tidslinje." },
+          { id: "blocked", x: 345, y: 445, w: 220, h: 90, lines: ["Avslag eller venting", "ingen sideeffekt"], description: "Manglende rettighet, utløpt lease eller uavklart operasjon blokkerer bare den aktuelle handlingen." }
+        ],
+        edges: [["core", "gateway"], ["gateway", "adapter"], ["adapter", "provider"], ["gateway", "blocked", "kontroll feiler"]]
+      },
+      improvement: {
+        title: "Selvforbedring",
+        subtitle: "Kandidater prøves isolert; ordinær drift fortsetter med aktiv versjon.",
+        parent: "overview",
+        nodes: [
+          { id: "evidence", x: 35, y: 205, w: 190, h: 90, lines: ["Driftsbevis", "mål · feil · flaskehals"], description: "Forslag begrunnes med observerte hendelser, forventet effekt og stoppkriterium." },
+          { id: "frame", x: 285, y: 205, w: 210, h: 90, lines: ["Sjekk grunnramme", "omfang · risiko"], description: "Separat kontroll klassifiserer endringen. Ukjent eller utenfor mandat legges i egen beslutningskø." },
+          { id: "candidate", x: 555, y: 205, w: 205, h: 90, lines: ["Isolert kandidat", "egen data · identitet"], description: "Kandidatens kø, database, CI og budsjett er atskilt fra aktiv drift." },
+          { id: "evaluate", x: 820, y: 205, w: 205, h: 90, lines: ["Uavhengig evaluering", "tester · replay · shadow"], description: "Obligatoriske tester består; historiske og syntetiske prøver kjøres før shadow og avgrenset canary." },
+          { id: "queue", x: 35, y: 435, w: 190, h: 90, lines: ["Beslutningskø", "utenfor grunnrammen"], description: "Forslag utenfor eller uklart innenfor mandatet venter på riktig beslutning. Ordinært arbeid fortsetter." },
+          { id: "discard", x: 280, y: 435, w: 190, h: 90, lines: ["Kandidat avvist", "aktiv versjon fortsetter"], description: "Kandidater som ikke består uavhengige tester eller akseptansekriterier forkastes uten å endre aktiv drift." },
+          { id: "rollback", x: 525, y: 435, w: 190, h: 90, lines: ["Rollback", "gammel versjon fortsetter"], description: "Brudd på invariant eller helsesjekk etter aktiveringsforsøk ruller tilbake kandidaten uten å stoppe ordinært arbeid." },
+          { id: "promote", x: 770, y: 435, w: 190, h: 90, lines: ["Promotering", "canary · blue/green"], description: "Separat promoteringstjeneste aktiverer bare kandidater innenfor mandat etter beståtte porter." },
+          { id: "active", x: 1000, y: 435, w: 175, h: 90, lines: ["Ny versjon aktiv"], description: "Aktivering bruker kontrollert lease-overføring. Resultater og målinger føres tilbake til læringssløyfen." }
+        ],
+        edges: [["evidence", "frame"], ["frame", "candidate", "innenfor mandat"], ["frame", "queue", "utenfor eller ukjent", "dashed"], ["candidate", "evaluate"], ["evaluate", "promote", "bestått"], ["evaluate", "discard", "feil"], ["promote", "active", "helse OK"], ["promote", "rollback", "feil"], ["active", "evidence", "lær", "dashed"]]
+      }
+    };
+
+    const svg = document.getElementById("diagram");
+    const detailPanel = document.getElementById("details");
+    const crumbBar = document.getElementById("breadcrumbs");
+    const svgNS = "http://www.w3.org/2000/svg";
+    let current = "overview";
+
+    function svgEl(name, attrs = {}) {
+      const el = document.createElementNS(svgNS, name);
+      for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+      return el;
+    }
+    function linkEl([label, href]) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.textContent = label;
+      a.target = "_blank";
+      a.rel = "noopener";
+      return a;
+    }
+    function centers(node) { return { x: node.x + node.w / 2, y: node.y + node.h / 2 }; }
+    function boundaryPoint(node, other) {
+      const a = centers(node), b = centers(other);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const scale = 1 / Math.max(Math.abs(dx) / (node.w / 2), Math.abs(dy) / (node.h / 2));
+      return { x: a.x + dx * scale, y: a.y + dy * scale };
+    }
+    function renderDetails(node, page) {
+      detailPanel.replaceChildren();
+      const heading = document.createElement("h2");
+      heading.textContent = node ? node.lines.join(" · ") : page.title;
+      detailPanel.append(heading);
+      const description = document.createElement("p");
+      description.textContent = node ? node.description : page.subtitle;
+      detailPanel.append(description);
+      if (node?.view) {
+        const p = document.createElement("p");
+        p.className = "note";
+        p.textContent = "Denne noden har et eget diagramnivå. Klikk på boksen for å åpne det.";
+        detailPanel.append(p);
+      }
+      if (node?.links?.length) {
+        const h = document.createElement("h2"); h.textContent = "Kilder"; detailPanel.append(h);
+        const list = document.createElement("ul");
+        for (const item of node.links) { const li = document.createElement("li"); li.append(linkEl(item)); list.append(li); }
+        detailPanel.append(list);
+      }
+      if (!node) {
+        const p = document.createElement("p");
+        p.className = "note";
+        p.textContent = "Velg en boks. Klikkbare bokser åpner et detaljnivå; andre bokser viser forklaring og kilder her.";
+        detailPanel.append(p);
+        const a = linkEl(["Åpne alle statiske diagrammer", diagrams]);
+        detailPanel.append(a);
+      }
+    }
+    function drawNode(node) {
+      const group = svgEl("g", { class: "node" + (node.view ? " clickable" : ""), tabindex: "0", role: "button", "aria-label": node.lines.join(". ") });
+      group.dataset.node = node.id;
+      group.append(svgEl("rect", { x: node.x, y: node.y, width: node.w, height: node.h }));
+      const lineHeight = 22;
+      const offset = node.lines.length > 2 ? 20 : 0;
+      const text = svgEl("text", { x: node.x + node.w / 2, y: node.y + node.h / 2 - ((node.lines.length - 1) * lineHeight) / 2 - offset });
+      node.lines.forEach((label, i) => {
+        const tspan = svgEl("tspan", { x: node.x + node.w / 2, dy: i === 0 ? 0 : lineHeight });
+        tspan.textContent = label;
+        text.append(tspan);
+      });
+      group.append(text);
+      if (node.view) {
+        const drill = svgEl("text", { x: node.x + node.w / 2, y: node.y + node.h - 11, class: "drill", "text-anchor": "middle" });
+        drill.textContent = "Åpne detaljnivå →";
+        group.append(drill);
+      }
+      const activate = () => {
+        if (node.view) {
+          location.hash = node.view;
+        } else {
+          document.querySelectorAll(".node.selected").forEach(el => el.classList.remove("selected"));
+          group.classList.add("selected");
+          renderDetails(node, pages[current]);
+        }
+      };
+      group.addEventListener("click", activate);
+      group.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(); }
+      });
+      return group;
+    }
+    function render() {
+      const requested = location.hash.slice(1);
+      current = pages[requested] ? requested : "overview";
+      const page = pages[current];
+      svg.replaceChildren();
+      const accessibleTitle = svgEl("title", { id: "svg-title" }); accessibleTitle.textContent = page.title;
+      const accessibleDesc = svgEl("desc", { id: "svg-desc" }); accessibleDesc.textContent = page.subtitle;
+      svg.append(accessibleTitle, accessibleDesc);
+      const defs = svgEl("defs");
+      const marker = svgEl("marker", { id: "arrow", viewBox: "0 0 10 10", refX: "8", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
+      marker.append(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: "var(--line)" }));
+      defs.append(marker); svg.append(defs);
+      const title = svgEl("text", { x: "28", y: "36", class: "diagram-title" }); title.textContent = page.title; svg.append(title);
+      const subtitle = svgEl("text", { x: "28", y: "60", class: "diagram-subtitle" }); subtitle.textContent = page.subtitle; svg.append(subtitle);
+      const byId = Object.fromEntries(page.nodes.map(n => [n.id, n]));
+      for (const [fromId, toId, label, style] of page.edges) {
+        const from = byId[fromId], to = byId[toId];
+        if (!from || !to) continue;
+        const a = boundaryPoint(from, to), b = boundaryPoint(to, from);
+        const line = svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: "edge" + (style === "dashed" ? " dashed" : "") });
+        svg.append(line);
+        if (label) {
+          const txt = svgEl("text", { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - 7, class: "edge-label" });
+          txt.textContent = label; svg.append(txt);
+        }
+      }
+      for (const node of page.nodes) svg.append(drawNode(node));
+      renderCrumbs(current);
+      renderDetails(null, page);
+      document.getElementById("back").disabled = !page.parent;
+      document.getElementById("back").onclick = () => { if (page.parent) location.hash = page.parent; };
+      document.title = "dev-org · " + page.title;
+    }
+    function renderCrumbs(viewId) {
+      crumbBar.replaceChildren();
+      const lineage = [];
+      let id = viewId;
+      while (id) { lineage.unshift(id); id = pages[id].parent; }
+      lineage.forEach((item, index) => {
+        if (index) { const sep = document.createElement("span"); sep.textContent = "›"; crumbBar.append(sep); }
+        const button = document.createElement("button");
+        button.type = "button"; button.textContent = pages[item].title;
+        button.setAttribute("aria-current", index === lineage.length - 1 ? "page" : "false");
+        button.addEventListener("click", () => { location.hash = item; });
+        crumbBar.append(button);
+      });
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

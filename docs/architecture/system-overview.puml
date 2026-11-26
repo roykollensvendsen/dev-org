@@ -1,0 +1,101 @@
+@startuml
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam wrapWidth 190
+
+actor "Menneske" as Human
+component "Dashboard / webflate" as Dashboard
+component "Stemme- eller chatapp\nMCP-klient" as Voice
+
+component "Worker-agent\nagentadapter + motor i sandbox" as Worker
+component "Eksternt agentsystem\nvalgfri A2A" as ExternalAgent
+component "GitHub Issues-webhook" as GitHubEvents
+component "GitHub Actions-webhook" as ActionsEvents
+
+component "dev-org kontrolltjeneste" as Control {
+  portin "REST / API" as p_api
+  portin "MCP" as p_mcp
+  portin "Worker API" as p_worker
+  portin "Webhook" as p_webhook
+  portin "A2A · valgfri" as p_a2a
+
+  portout "Persistence" as p_persistence
+  portout "WorkTracking" as p_worktracking
+  portout "Git / PR" as p_git
+  portout "CI status" as p_ci
+  portout "ExecutionBackend" as p_runtime
+  portout "Artefakter" as p_artifact
+
+  component "REST-, webhook- og MCP-adaptere" as Ingress
+  component "Identitet · policy" as Access
+  component "Rettighetsinnsyn\nlesende policyspørringer" as AccessView
+  component "Organisasjonskjerne\noppgaver · leases · meldinger" as Core
+  component "Innsiktsspørringer" as Insights
+  component "Integrasjonsgateway" as Gateway
+
+  p_api --> Ingress
+  p_mcp --> Ingress
+  p_worker --> Ingress
+  p_webhook --> Ingress
+  p_a2a --> Ingress
+  Ingress --> Access
+  Ingress --> AccessView
+  AccessView --> Access
+  AccessView --> p_persistence : revisjonslogg
+  Access --> Core
+  Access --> Insights
+  Core --> Gateway
+  Core --> p_persistence
+  Insights --> p_persistence
+  Core --> p_runtime
+  Core --> p_artifact
+  Gateway --> p_worktracking
+  Gateway --> p_git
+  Gateway --> p_ci
+}
+
+component "PostgreSQL-adapter" as PgAdapter
+database "PostgreSQL" as PostgreSQL
+component "GitHub Projects/Issues-adapter" as BoardAdapter
+component "Lokal filbasert boardadapter" as LocalBoard
+folder "Lokale boardfiler" as LocalFiles
+component "GitHub Git/PR-adapter" as GitAdapter
+component "GitHub Actions-adapter" as CIAdapter
+component "Podman ExecutionBackend" as RuntimeAdapter
+component "Artefaktadapter" as ArtifactAdapter
+component "GitHub Projects/Issues API" as GitHubBoardApi
+component "GitHub repo/PR API" as GitHubRepoApi
+component "GitHub Actions API" as GitHubActionsApi
+
+Human --> Dashboard
+Dashboard --> p_api
+Human --> Voice
+Voice --> p_mcp
+Worker --> p_worker
+Worker --> p_mcp : verktøykall
+ExternalAgent ..> p_a2a : senere
+GitHubEvents --> p_webhook
+ActionsEvents --> p_webhook
+
+p_persistence --> PgAdapter
+PgAdapter --> PostgreSQL
+p_worktracking --> BoardAdapter
+p_worktracking --> LocalBoard
+BoardAdapter --> GitHubBoardApi
+LocalBoard --> LocalFiles
+p_git --> GitAdapter
+GitAdapter --> GitHubRepoApi
+p_ci --> CIAdapter
+CIAdapter --> GitHubActionsApi
+p_runtime --> RuntimeAdapter
+RuntimeAdapter --> Worker : sandbox lifecycle
+p_artifact --> ArtifactAdapter
+
+note bottom of Control
+  Inngående porter er på toppkanten.
+  Utgående porter er på bunnkanten.
+  Portene er kontrakter; adapterne håndterer protokoller og leverandører.
+end note
+
+@enduml

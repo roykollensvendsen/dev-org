@@ -1,0 +1,12 @@
+.bootstrap/
+__pycache__/
+*.py[co]
+.pytest_cache/
+.venv/
+*.egg-info/
+dist/
+src/*/_version.py
+.coverage
+coverage.xml
+htmlcov/
+scripts/.mutate-recovery.json
