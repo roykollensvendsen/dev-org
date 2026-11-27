@@ -13,6 +13,7 @@ dynamic = ["version"]
 dependencies = [
     "agent-client-protocol>=1.1.0",
     "pydantic>=2.10",
+    "pyjwt>=2.15.1",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +57,9 @@ ignore = ["D203", "D213", "COM812", "ISC001", "CPY001", "D401"]
 # own signatures and methods with more than five arguments; those rules fight
 # the SDK, not our code.
 "src/dev_org/agents/acp_adapter.py" = ["ANN", "PLR0913", "PLR0917", "S108"]
+# GitHub's REST API returns dynamically shaped JSON; the internal raw call
+# helper returns Any by design and shapes the data at the contract edge.
+"src/dev_org/gateway/github.py" = ["ANN401"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -76,3 +80,8 @@ omit = ["*/_version.py"]   # generated from the Git tag at build time
 [tool.coverage.report]
 show_missing = true
 exclude_also = ["if __name__ == .__main__.:"]
+
+[dependency-groups]
+dev = [
+    "cryptography>=50.0.2",
+]
