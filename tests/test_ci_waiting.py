@@ -32,11 +32,11 @@ class FakeCi:
         return {"state": self.results.get((repo, sha, check_name), "pending")}
 
 
-def make_waiter(ci: FakeCi | None = None) -> tuple[CiWaiter, TaskLifecycle, FakeCi]:
+def make_waiter(ci: FakeCi | None = None) -> tuple[CiWaiter, TaskLifecycle, FakeCi, InMemoryStore]:
     store = InMemoryStore()
     lifecycle = TaskLifecycle(store)
     ci = ci or FakeCi()
-    return CiWaiter(lifecycle=lifecycle, ci=ci), lifecycle, ci
+    return CiWaiter(lifecycle=lifecycle, ci=ci, store=store), lifecycle, ci, store
 
 
 def make_task(task_id: str = "t-1") -> Task:
@@ -53,7 +53,7 @@ def start_and_wait(waiter: CiWaiter, lifecycle: TaskLifecycle, task: Task) -> No
 
 
 def test_the_wait_condition_records_repo_sha_and_check():
-    waiter, lifecycle, _ = make_waiter()
+    waiter, lifecycle, _, store = make_waiter()
     task = make_task()
     lifecycle.dispatch(task)
     waiter.wait_for_ci(
@@ -68,6 +68,7 @@ def test_the_wait_condition_records_repo_sha_and_check():
     assert condition.repo == "roykollensvendsen/dev-org"
     assert condition.sha == "abc123"
     assert condition.check_name == "checks"
+    assert store.get_wait_condition("t-1") is not None  # durable, through the Store
     assert task.status == WAITING  # the worker's session is ended
 
 
@@ -75,11 +76,11 @@ def test_the_wait_condition_records_repo_sha_and_check():
 
 
 def test_reconciliation_asks_only_for_the_waiting_check():
-    waiter, lifecycle, ci = make_waiter()
+    waiter, lifecycle, ci, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
     ci.results[("r", "s1", "checks")] = "success"
-    result = waiter.reconcile(task=task, repo="r", sha="s1", check_name="checks")
+    result = waiter.reconcile(task_id="t-1")
     assert result == "success"
     assert ci.calls == 1  # cheap: one targeted status query
 
@@ -88,21 +89,20 @@ def test_reconciliation_asks_only_for_the_waiting_check():
 
 
 def test_a_result_for_the_wrong_sha_is_ignored():
-    waiter, lifecycle, ci = make_waiter()
+    waiter, lifecycle, _, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
-    ci.results[("r", "s1", "checks")] = "success"
-    # reconcile with a different sha (a stale result): must not wake the task
-    result = waiter.reconcile(task=task, repo="r", sha="s2", check_name="checks")
+    # A webhook event for a different sha must not wake this wait.
+    result = waiter.on_event(task_id="t-1", event_sha="s2", event_state="success")
     assert result is None
     assert task.status == WAITING  # still waiting, not woken
 
 
 def test_pending_result_does_not_wake_the_task():
-    waiter, lifecycle, _ = make_waiter()
+    waiter, lifecycle, _, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
-    result = waiter.reconcile(task=task, repo="r", sha="s1", check_name="checks")
+    result = waiter.reconcile(task_id="t-1")
     assert result is None  # FakeCi returns "pending" by default
     assert task.status == WAITING
 
@@ -111,13 +111,13 @@ def test_pending_result_does_not_wake_the_task():
 
 
 def test_a02_duplicate_event_wakes_at_most_once():
-    waiter, lifecycle, ci = make_waiter()
+    waiter, lifecycle, ci, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
     ci.results[("r", "s1", "checks")] = "success"
 
-    first = waiter.reconcile(task=task, repo="r", sha="s1", check_name="checks")
-    second = waiter.reconcile(task=task, repo="r", sha="s1", check_name="checks")  # duplicate
+    first = waiter.reconcile(task_id="t-1")
+    second = waiter.reconcile(task_id="t-1")  # duplicate
 
     assert first == "success"
     assert second is None  # already resolved
@@ -128,11 +128,11 @@ def test_a02_duplicate_event_wakes_at_most_once():
 def test_completion_without_model_calls_when_machine_checkable():
     # After the wait resolves, the lifecycle can complete the task without a
     # model: there are no model calls anywhere in this module.
-    waiter, lifecycle, ci = make_waiter()
+    waiter, lifecycle, ci, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
     ci.results[("r", "s1", "checks")] = "success"
-    assert waiter.reconcile(task=task, repo="r", sha="s1", check_name="checks") == "success"
+    assert waiter.reconcile(task_id="t-1") == "success"
     # the lifecycle move is a state transition, not a model call
     assert task.status == READY_FOR_REPROCESSING
 
@@ -141,7 +141,7 @@ def test_completion_without_model_calls_when_machine_checkable():
 
 
 def test_the_status_view_shows_the_blockage_and_next_event():
-    waiter, lifecycle, _ = make_waiter()
+    waiter, lifecycle, _, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
 
@@ -155,9 +155,22 @@ def test_the_status_view_shows_the_blockage_and_next_event():
 
 
 def test_a11_zero_model_calls_while_waiting():
-    waiter, lifecycle, _ = make_waiter()
+    waiter, lifecycle, _, _ = make_waiter()
     task = make_task()
     start_and_wait(waiter, lifecycle, task)
     # No model call is possible: CiWaiter has no model import or call.
     assert task.status == WAITING
     assert waiter.pending("t-1") is not None  # the condition is held, nothing is running
+
+
+# A42: a duplicate event after a dropped one is found by reconciliation ----
+
+
+def test_a42_reconciliation_finds_a_result_after_a_dropped_event():
+    waiter, lifecycle, ci, _ = make_waiter()
+    task = make_task()
+    start_and_wait(waiter, lifecycle, task)
+    # The webhook was dropped: no on_event ever arrives. Polling finds it.
+    ci.results[("r", "s1", "checks")] = "success"
+    assert waiter.reconcile(task_id="t-1") == "success"
+    assert task.status == READY_FOR_REPROCESSING

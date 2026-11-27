@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from dev_org.state.models import Attempt, Event, Reservation, Task
+    from dev_org.state.models import Attempt, CiWaitCondition, Event, Reservation, Task
 
 
 @runtime_checkable
@@ -62,6 +62,14 @@ class Store(Protocol):
         """Return every event recorded for a task, in order."""
         ...
 
+    def save_wait_condition(self, condition: CiWaitCondition) -> None:
+        """Persist a wait condition, replacing any previous version for its task."""
+        ...
+
+    def get_wait_condition(self, task_id: str) -> CiWaitCondition | None:
+        """Return the stored wait condition for a task, or None."""
+        ...
+
     def ready_tasks(self, project_id: str) -> list[Task]:
         """Return the ready tasks for a project."""
         ...
@@ -79,6 +87,7 @@ class InMemoryStore:
     tasks: dict[str, Task] = field(default_factory=dict)
     attempts: dict[str, Attempt] = field(default_factory=dict)
     reservations: dict[str, Reservation] = field(default_factory=dict)
+    wait_conditions: dict[str, CiWaitCondition] = field(default_factory=dict)
     events: list[Event] = field(default_factory=list)
 
     def save_task(self, task: Task) -> None:
@@ -108,6 +117,14 @@ class InMemoryStore:
     def get_reservation(self, attempt_id: str) -> Reservation | None:
         """Return the stored reservation, or None."""
         return self.reservations.get(attempt_id)
+
+    def save_wait_condition(self, condition: CiWaitCondition) -> None:
+        """Store a wait condition under its task ID, replacing the old one."""
+        self.wait_conditions[condition.task_id] = condition
+
+    def get_wait_condition(self, task_id: str) -> CiWaitCondition | None:
+        """Return the stored wait condition, or None."""
+        return self.wait_conditions.get(task_id)
 
     def append_event(self, event: Event) -> None:
         """Append an event to the log."""
