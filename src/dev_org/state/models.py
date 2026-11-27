@@ -36,6 +36,10 @@ class Task(DomainModel):
     title: str
     priority: Literal["P0", "P1", "P2"] = "P2"
     status: str = "Ready"
+    #: Which queue the task belongs to: ordinary client work, or a
+    #: self-improvement candidate that runs in its own budgeted queue and
+    #: yields to production work (sections 9.2, ADR-DEV-010).
+    kind: Literal["production", "improvement"] = "production"
     acceptance_criteria: list[str] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=UTCNOW)
