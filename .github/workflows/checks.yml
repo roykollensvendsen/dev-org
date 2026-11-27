@@ -34,8 +34,13 @@ jobs:
       - name: An epic with open children cannot be closed
         env:
           GH_TOKEN: ${{ github.token }}
+          # The body is passed through env, not interpolated into the shell
+          # script: a body containing quotes would otherwise break the
+          # script (GitHub escapes env values, it does not escape inline
+          # ${{ }} in run blocks).
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          body="${{ github.event.pull_request.body }}"
+          body="$PR_BODY"
           if [ -z "$body" ]; then
             echo "No PR body; nothing to check."
             exit 0
