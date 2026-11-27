@@ -19,6 +19,7 @@ from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.evaluation import CountingCi, ReplayEvaluator, ReplayEvent, ReplayReport
 from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
+from dev_org.core.node_lease import LeaseRefusedError, LeaseState, NodeLeaseService
 from dev_org.core.nodes import NodeRegistry, NodeStatus, TaskRequirements, WorkerNode
 from dev_org.core.scheduler import ImprovementBudget, Scheduler
 from dev_org.core.snapshot import (
@@ -47,6 +48,9 @@ __all__ = [
     "HandoverError",
     "HandoverService",
     "ImprovementBudget",
+    "LeaseRefusedError",
+    "LeaseState",
+    "NodeLeaseService",
     "NodeRegistry",
     "NodeStatus",
     "PolicyController",

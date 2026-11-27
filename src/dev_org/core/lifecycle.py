@@ -208,8 +208,12 @@ class TaskLifecycle:
             return False
         return ownership_number == current.ownership_number
 
-    def take_over(self, task: Task) -> Reservation:
-        """Re-dispatch after an expired lease: new owner, higher number."""
+    def take_over(self, task: Task, *, worker_id: str = "worker-1") -> Reservation:
+        """Re-dispatch after an expired lease: new owner, higher number.
+
+        ``worker_id`` is injectable so a take-over can name the new node
+        (issue #51, A65) instead of the default worker.
+        """
         if task.status != IN_PROGRESS:
             msg = f"cannot take over a task in state {task.status}"
             raise ValueError(msg)
@@ -217,7 +221,7 @@ class TaskLifecycle:
         reservation = Reservation(
             id=_new_id("reservation"),
             attempt_id=attempt.id,
-            worker_id="worker-1",
+            worker_id=worker_id,
             ownership_number=next(self._ownership),
             fencing_token=_new_id("token"),
             lease_expires_at=self.clock() + timedelta(minutes=30),

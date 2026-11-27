@@ -85,7 +85,7 @@ STEP_TESTS = step_tests()
 STEP1_EVIDENCE: dict[str, str] = {
     "A01": "tests/test_first_workflow.py + tests/test_gateway_service.py (re-find the same PR once)",
     "A02": "tests/test_ci_waiting.py + tests/test_first_workflow.py (duplicate event wakes at most once)",
-    "A05": "tests/test_queue_lifecycle.py::test_a_stale_owner_cannot_publish_after_lease_expiry",
+    "A05": "tests/test_queue_lifecycle.py + tests/test_node_lease.py (lease expiry; active owner only)",
     "A10": "tests/test_gateway_service.py (manual priority preserved while PR link is recorded)",
     "A11": "tests/test_ci_waiting.py::test_a11_zero_model_calls_while_waiting",
     "A12": "tests/test_queue_lifecycle.py (no model call on an empty/waiting queue)",
@@ -152,13 +152,14 @@ STEP3_EVIDENCE: dict[str, str] = {
     "A60": "tests/test_change_frame.py (unknown risk quarantined; outside frame rejected)",
 }
 
-#: Evidence per step-4 test delivered so far (issue #49 node registration).
-#: The keys come from the spec's "From step | 4 |" row; the rest (A04, A08,
-#: A24, A26, A65) arrive with issues #50-#53.
+#: Evidence per step-4 test delivered so far (issues #49-#51). The keys come
+#: from the spec's "From step | 4 |" row; the rest (A04, A24, A26) arrive
+#: with issues #52-#53.
 STEP4_EVIDENCE: dict[str, str] = {
     "A08": "tests/test_snapshot.py (move preserves secured code, PR, wait, issue id)",
-    "A63": "tests/test_nodes.py (second worker with different capabilities; compatible nodes only)",
+    "A63": "tests/test_nodes.py + tests/test_node_lease.py (compatible nodes; old owner cannot publish)",
     "A64": "tests/test_nodes.py (fresh qualified nodes only; unknown is not zero)",
+    "A65": "tests/test_node_lease.py (one active owner; old process cannot publish)",
 }
 
 #: Evidence per step-5 test that this early delivery covers (Codex, the
@@ -207,7 +208,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
-    4: "A04/A08/A24/A26/A65 arrive with issues #50-#53 (snapshot, lease, parallel, status)",
+    4: "A04/A24/A26 arrive with issues #52-#53 (parallel, status)",
     5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
 }
 
