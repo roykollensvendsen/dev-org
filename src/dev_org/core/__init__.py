@@ -8,6 +8,13 @@ target directly.
 
 from dev_org.core.activation import ActivationGates, ActivationRefusedError, ActivationService, ActiveVersion
 from dev_org.core.candidate import CandidateEnvironment, CandidateSnapshot
+from dev_org.core.change_frame import (
+    ChangeDecision,
+    ChangeFrame,
+    ChangeProposal,
+    PolicyController,
+    PromotionService,
+)
 from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.evaluation import CountingCi, ReplayEvaluator, ReplayEvent, ReplayReport
 from dev_org.core.handover import HandoverError, HandoverService
@@ -22,11 +29,16 @@ __all__ = [
     "ActiveVersion",
     "CandidateEnvironment",
     "CandidateSnapshot",
+    "ChangeDecision",
+    "ChangeFrame",
+    "ChangeProposal",
     "CiWaiter",
     "CountingCi",
     "HandoverError",
     "HandoverService",
     "ImprovementBudget",
+    "PolicyController",
+    "PromotionService",
     "ReplayEvaluator",
     "ReplayEvent",
     "ReplayReport",
