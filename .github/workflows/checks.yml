@@ -40,8 +40,12 @@ jobs:
             echo "No PR body; nothing to check."
             exit 0
           fi
-          # Every "Closes #N" the body names, with or without surrounding text.
-          closes=$(printf '%s\n' "$body" | grep -oE 'Closes #?[0-9]+' | grep -oE '[0-9]+' | sort -u)
+          # A closing keyword counts only when it starts a line (optionally
+          # after a list marker): "Closes #N" on its own line is a closing
+          # declaration, but a sentence like '"Closes #14" fails' in the
+          # middle of prose is not.
+          closes=$(printf '%s\n' "$body" | grep -E '^[[:space:]]*(>|[*-]|[0-9]+[.)])?[[:space:]]*Closes #?[0-9]+' \
+            | grep -oE '[0-9]+' | sort -u)
           if [ -z "$closes" ]; then
             echo "The PR body closes no issue."
             exit 0
