@@ -63,6 +63,31 @@ class Reservation(DomainModel):
     created_at: datetime = Field(default_factory=UTCNOW)
 
 
+class Approval(DomainModel):
+    """A concrete approval request, bound to action, resource, and validity.
+
+    Section 10.1 lists Approval among the core objects. Section 3.2 binds an
+    approval to a stable request ID, the exact action and resource, the
+    relevant content/code version, mandate conditions, and expiry; if that
+    basis changes, the request must be reassessed.
+    """
+
+    request_id: str
+    organization_id: str
+    project_id: str
+    task_id: str | None = None
+    actor: str  # who requested the approval
+    action: str
+    resource: str
+    rationale: str
+    policy_version: str
+    status: Literal["pending", "approved", "denied", "expired"] = "pending"
+    expires_at: datetime
+    answered_at: datetime | None = None
+    answer: str | None = None
+    created_at: datetime = Field(default_factory=UTCNOW)
+
+
 class Checkpoint(DomainModel):
     """An engine-independent snapshot a different engine can continue from."""
 
