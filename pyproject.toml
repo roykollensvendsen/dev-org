@@ -64,6 +64,9 @@ warn_unused_configs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "live: requires a live rootless Podman and is not run by default CI",
+]
 
 [tool.coverage.run]
 branch = true
