@@ -17,3 +17,4 @@ These are short, repository-specific working rules. The requirements on architec
 - In the delivery report state the change, the affected contracts, the checks that actually ran, the result, and the remaining risk. Do not claim something is verified without evidence.
 - Use the [skill for parallel dev-org work](skills/dev-org-parallel-work/SKILL.md) for tasks across modules or work done at the same time by several agents.
 - Use the [skill for documentation maintenance](skills/dev-org-doc-maintenance/SKILL.md) when you change the specification, acceptance requirements, work protocols, or architecture diagrams.
+- Use the [skill for backlog and epic management](skills/dev-org-backlog/SKILL.md) when splitting an epic, closing an issue another issue names as its epic, or writing any plan that describes future issues. The board is authoritative; the plan is never restated as a parallel task list in Git.
