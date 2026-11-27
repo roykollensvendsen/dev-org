@@ -2,13 +2,13 @@
 
 The execution environment (section 3.3) creates and ends isolated
 workspaces and processes, and enforces access to files, network, and local
-resources. This module defines the contract; the rootless Podman backend is
-issue #7.
+resources. ``PodmanBackend`` (issue #7) implements the contract over
+rootless Podman.
 """
 
-from __future__ import annotations
-
 from typing import Protocol, runtime_checkable
+
+from dev_org.runtime.podman import PodmanBackend, RuntimeProfile
 
 
 @runtime_checkable
@@ -28,4 +28,4 @@ class ExecutionBackend(Protocol):
         ...
 
 
-__all__ = ["ExecutionBackend"]
+__all__ = ["ExecutionBackend", "PodmanBackend", "RuntimeProfile"]
