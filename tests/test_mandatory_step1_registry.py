@@ -121,17 +121,18 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A80": "tests/test_agent_adapter_contract.py (OpenCode adapter satisfies the AgentAdapter contract)",
 }
 
-#: Evidence per step-2 test (issue #12 qualifies the second engine). The keys
-#: come from the spec's "From step | 2 |" row, like step 1.
+#: Evidence per step-2 test (issue #12 qualifies the second engine, issue
+#: #13 delivers handover and message delivery). The keys come from the
+#: spec's "From step | 2 |" row, like step 1.
 STEP2_EVIDENCE: dict[str, str] = {
-    "A18": "tests/test_engine_independence.py + tests/test_first_workflow.py (engine switch)",
-    "A23": "tests/test_policy_engine.py (a duplicated approval gives one continuation)",
+    "A18": "tests/test_handover.py (engine switch from the checkpoint, no build)",
+    "A23": "tests/test_handover.py (duplicate delivery is one logical processing)",
     "A34": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (capabilities)",
-    "A35": "tests/test_policy_engine.py (an old approval answer after a restart grants nothing)",
-    "A36": "tests/test_gateway_service.py + tests/test_first_workflow.py (journal reconciles a lost answer)",
+    "A35": "tests/test_handover.py (an old approval answer after a restart grants nothing)",
+    "A36": "tests/test_handover.py + tests/test_gateway_service.py (journal reconciles a lost answer)",
     "A51": "tests/test_agent_adapter_contract.py (unmodified CLI, native login, no API key)",
     "A52": "live: provider quota handling needs a live provider (later step; docs/pilot.md)",
-    "A54": "live: message channel between workers (later issue; docs/pilot.md)",
+    "A54": "tests/test_handover.py (messages queued without a competing session)",
 }
 
 #: Evidence per step-5 test that this early delivery covers (Codex, the

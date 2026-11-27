@@ -7,7 +7,8 @@ target directly.
 """
 
 from dev_org.core.ci_waiting import CiWaiter
+from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.state.models import Reservation, Task
 
-__all__ = ["CiWaiter", "Reservation", "Task", "TaskLifecycle"]
+__all__ = ["CiWaiter", "HandoverError", "HandoverService", "Reservation", "Task", "TaskLifecycle"]
