@@ -7,22 +7,28 @@ model; the same evaluator is used by the performing call and by
 `evaluate_action`.
 """
 
-from __future__ import annotations
+from dev_org.policy.engine import (
+    CHANGE_WORKSPACE,
+    CREATE_PR,
+    MERGE,
+    ORDER_CI,
+    PUBLISH_BRANCH,
+    ROLLOUT,
+    ApprovalRegistry,
+    Evaluation,
+    PolicyEngine,
+    Rule,
+)
 
-from typing import Literal, Protocol, runtime_checkable
-
-Decision = Literal["allow", "deny", "requires approval"]
-
-
-@runtime_checkable
-class PolicyEvaluator(Protocol):
-    """Evaluate one action against the current policy."""
-
-    def evaluate(
-        self, *, actor: str, action: str, resource: str, context: dict[str, object]
-    ) -> tuple[Decision, str, str]:
-        """Return (decision, rationale, policy version)."""
-        ...
-
-
-__all__ = ["Decision", "PolicyEvaluator"]
+__all__ = [
+    "CHANGE_WORKSPACE",
+    "CREATE_PR",
+    "MERGE",
+    "ORDER_CI",
+    "PUBLISH_BRANCH",
+    "ROLLOUT",
+    "ApprovalRegistry",
+    "Evaluation",
+    "PolicyEngine",
+    "Rule",
+]
