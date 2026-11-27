@@ -12,6 +12,7 @@ license-files = ["LICENSE"]
 dynamic = ["version"]
 dependencies = [
     "agent-client-protocol>=1.1.0",
+    "claude-agent-sdk>=0.2.175",
     "pydantic>=2.10",
     "pyjwt>=2.15.1",
 ]

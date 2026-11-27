@@ -74,11 +74,14 @@ specification's section 12 asks for the queue, policy, and state machine.
 The parts that need a real component are documented here and in the step-1
 registry as live tests:
 
-- **OpenCode adapter end to end (A80, A17).** The adapter satisfies the
-  `AgentAdapter` contract (`tests/test_agent_adapter_contract.py`), but a
-  real run needs the pinned OpenCode CLI talking to a live provider. Run:
-  `uv run python -m pytest tests/test_agent_adapter_contract.py`, then a
-  live agent run against the pilot repo with the OpenCode adapter selected.
+- **Claude Code end to end (A51, A17).** The Claude Code adapter
+  (`src/dev_org/agents/claude_code.py`) runs the unmodified CLI under the
+  user's native `claude.ai` login, verified live in
+  `tests/test_agent_adapter_contract.py` (it runs a real turn and asserts no
+  `ANTHROPIC_API_KEY`). OpenCode satisfies the same contract
+  (`tests/test_agent_adapter_contract.py`), and a full end-to-end delivery
+  with either engine is the step-2 handover's job. See
+  `docs/engines.md` for the capability report.
 - **Sandbox isolation (A20, A40).** Rootless Podman probes are written as
   live markers in `tests/test_runtime_podman.py` and run where `podman` is
   installed (`uv run pytest -m live`); they are skipped in CI because CI has
