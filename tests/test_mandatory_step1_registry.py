@@ -89,7 +89,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A10": "tests/test_gateway_service.py (manual priority preserved while PR link is recorded)",
     "A11": "tests/test_ci_waiting.py::test_a11_zero_model_calls_while_waiting",
     "A12": "tests/test_queue_lifecycle.py (no model call on an empty/waiting queue)",
-    "A17": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (both engines)",
+    "A17": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (all qualified engines)",
     "A19": "tests/test_policy_engine.py::test_merge_is_never_allowed_flatly_for_a_worker",
     "A20": "live: tests/test_runtime_podman.py live markers (engine-independent sandbox probe)",
     "A21": "tests/test_runtime_podman.py (refuse a profile the backend cannot enforce)",

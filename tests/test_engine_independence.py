@@ -26,8 +26,10 @@ import pytest
 from dev_org.agents import (
     CLAUDE_CODE_VERSION,
     CODEX_VERSION,
+    HERMES_VERSION,
     ClaudeCodeAdapter,
     CodexAdapter,
+    HermesApcAdapter,
     OpenCodeApcAdapter,
     OpenCodeHttpAdapter,
 )
@@ -44,6 +46,7 @@ QUALIFIED_ADAPTERS = [
     pytest.param(OpenCodeHttpAdapter(command="opencode", version="2.0.29"), id="opencode-http"),
     pytest.param(ClaudeCodeAdapter(command="claude", version=CLAUDE_CODE_VERSION), id="claude-code"),
     pytest.param(CodexAdapter(command="codex", version=CODEX_VERSION), id="codex"),
+    pytest.param(HermesApcAdapter(command="hermes-acp", version=HERMES_VERSION), id="hermes"),
 ]
 
 

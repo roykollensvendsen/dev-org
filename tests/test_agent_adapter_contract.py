@@ -21,25 +21,32 @@ import os
 import shutil
 import subprocess
 import uuid
+from pathlib import Path
 
 import pytest
 
 from dev_org.agents import (
     CLAUDE_CODE_VERSION,
     CODEX_VERSION,
+    HERMES_VERSION,
     ClaudeCodeAdapter,
     CodexAdapter,
+    HermesApcAdapter,
     OpenCodeApcAdapter,
     OpenCodeHttpAdapter,
 )
 from dev_org.agents.protocol import AgentAdapter
 from dev_org.state.models import Attempt, Task
 
+#: Where hermes-acp lives; it is not on PATH, so the adapter needs the full path.
+HERMES_ACP = "/home/roy/hermes-agent/.venv/bin/hermes-acp"
+
 ADAPTERS = [
     pytest.param(OpenCodeApcAdapter(command="opencode", version="2.0.29"), id="opencode-acp"),
     pytest.param(OpenCodeHttpAdapter(command="opencode", version="2.0.29"), id="opencode-http"),
     pytest.param(ClaudeCodeAdapter(command="claude", version=CLAUDE_CODE_VERSION), id="claude-code"),
     pytest.param(CodexAdapter(command="codex", version=CODEX_VERSION), id="codex"),
+    pytest.param(HermesApcAdapter(command=HERMES_ACP, version=HERMES_VERSION), id="hermes"),
 ]
 
 
@@ -129,12 +136,14 @@ def test_claude_code_follow_run_normalizes_a_transcript_without_a_model():
     assert adapter.follow_run(attempt) == []
 
 
-def test_claude_code_live_start_work_runs_a_turn_with_the_subscription_login():
+def test_claude_code_live_start_work_runs_a_turn_with_the_subscription_login(tmp_path):
     """A51/A17 live: the unmodified CLI works under the user's own login.
 
     This is a live probe and needs the user's native subscription login, so
     it is skipped when the engine is not reachable or the environment cannot
-    run it. It never sets or reads an API key.
+    run it. It never sets or reads an API key. It runs in a fresh scratch
+    directory so it never collides with another Claude session (Claude Code
+    allows one active session per project directory).
     """
     if shutil.which("claude") is None:
         pytest.skip("claude is not installed")
@@ -146,7 +155,7 @@ def test_claude_code_live_start_work_runs_a_turn_with_the_subscription_login():
             attempt,
             "mandate",
             "budget",
-            "/tmp/opencode",  # noqa: S108 - a scratch dir for the live probe
+            str(tmp_path),  # a fresh scratch dir: no session collision
         )
     except Exception:  # noqa: BLE001 - engine not reachable or session refused
         pytest.skip("claude is not reachable for a live session")
@@ -255,3 +264,41 @@ def test_codex_start_work_reads_the_thread_id_from_the_event_stream():
         {"type": "item.completed", "item": {"type": "agent_message", "text": "done"}},
     ]
     assert adapter._thread_id(events) == "01a21d77-8b9a-7452-b6a2-74c51f8f877c"  # noqa: SLF001 - unit probe of the parser
+
+
+# Hermes: a documented fourth engine over ACP ---------------------------
+
+
+def test_hermes_adapter_reports_the_pinned_version_and_honest_capabilities():
+    """Hermes reports what it actually supports, emulates, or lacks."""
+    adapter = HermesApcAdapter(command=HERMES_ACP, version=HERMES_VERSION)
+    caps = adapter.report_capabilities()
+    assert caps.version == HERMES_VERSION
+    assert caps.usage_measurement == "unavailable"  # honest, never zero
+    assert caps.start == "supported"
+    assert caps.resume == "supported"
+
+
+def test_hermes_live_start_work_runs_a_turn_through_its_own_acp_server(tmp_path):
+    """Hermes answers a real turn through its own ACP server.
+
+    This is a live probe and needs the hermes-acp server reachable; it is
+    skipped when the engine is not installed or not reachable (as in CI,
+    which has no Hermes). It runs in a fresh scratch directory so it never
+    collides with another session.
+    """
+    if not Path(HERMES_ACP).exists():
+        pytest.skip("hermes-acp is not installed")
+    adapter = HermesApcAdapter(command=HERMES_ACP, version=HERMES_VERSION)
+    attempt = Attempt(id="a-hermes", task_id="t-1")
+    try:
+        adapter.start_work(
+            make_task(),
+            attempt,
+            "mandate",
+            "budget",
+            str(tmp_path),  # a fresh scratch dir: no session collision
+        )
+    except Exception:  # noqa: BLE001 - engine not reachable or session refused
+        pytest.skip("hermes is not reachable for a live session")
+    assert attempt.engine_session_id  # the adapter recorded the pinned session

@@ -44,6 +44,10 @@ if TYPE_CHECKING:
 #: The pinned engine/adapter version pair (section 4.1: registered together).
 CLAUDE_CODE_VERSION = "2.1.331"
 
+#: How long one model turn may take before the adapter gives up. A live
+#: probe that exceeds this becomes a skip, not a hang.
+TURN_TIMEOUT = 180.0
+
 #: A scratch workspace for the courier and resume turns. The task's real
 #: workspace comes from the reservation; these turns carry only text.
 _COURIER_CWD = "/tmp/dev-org-claude-courier"  # noqa: S108 - a scratch dir for the courier
@@ -120,16 +124,27 @@ class ClaudeCodeAdapter:
         )
 
     def _turn(self, *, session_id: str, cwd: str, prompt: str, resume: bool) -> str:
-        """Run one turn against the pinned conversation and return its result text."""
+        """Run one turn against the pinned conversation and return its result text.
+
+        The whole turn, including the client's own disconnect, is bounded by
+        ``TURN_TIMEOUT``: a hung engine gives up with a clear error instead
+        of blocking the worker forever, and the SDK subprocess is terminated
+        so it cannot leak and lock the workspace for the next run.
+        """
 
         async def _run() -> str:
-            result_text = ""
             options = self._options(session_id=session_id, cwd=cwd, resume=resume)
-            async with ClaudeSDKClient(options) as client:
-                await client.query(prompt)
-                async for msg in client.receive_response():
-                    if isinstance(msg, ResultMessage):
-                        result_text = msg.result or ""
+            result_text = ""
+
+            async def _turn_once() -> None:
+                nonlocal result_text
+                async with ClaudeSDKClient(options) as client:
+                    await client.query(prompt)
+                    async for msg in client.receive_response():
+                        if isinstance(msg, ResultMessage):
+                            result_text = msg.result or ""
+
+            await asyncio.wait_for(_turn_once(), timeout=TURN_TIMEOUT)
             return result_text
 
         return asyncio.run(_run())
