@@ -1,18 +1,21 @@
 """The mandatory step tests, each mapped to real evidence, from one source.
 
-Issue #11 requires running the mandatory step-1 tests. The specification's
-section 12 has the authoritative "From step" table: every step names the
-tests that become mandatory from it. This module makes that table the single
-source of truth:
+The specification's section 12 has the authoritative "From step" table:
+every step names the tests that become mandatory from it. This module makes
+that table the single source of truth:
 
 - the canonical step -> tests map is parsed from the spec, not hand-copied,
   so a transcription like "A50" where the spec says "A80" fails here first;
 - a test must map to real evidence: a deterministic test in this suite, or
   a clearly marked live test needing a component this environment does not
-  provide (OpenCode against a live provider, rootless Podman, real
-  GitHub/CI) and where/how it runs;
+  provide (a live engine or provider, rootless Podman, real GitHub/CI) and
+  where/how it runs;
 - the registry fails when a step's tests are not all evidenced, or when a
   test is cited that the spec's A-table does not define.
+
+Evidence is recorded per step: issue #11 delivers step 1 (the pilot), issue
+#12 delivers step 2 (the second engine). A step without an evidence map yet
+is simply not claimed.
 
 This registry is itself the mechanism that keeps that mapping honest: it
 fails when the specification's step lists change but the evidence does not,
@@ -86,7 +89,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A10": "tests/test_gateway_service.py (manual priority preserved while PR link is recorded)",
     "A11": "tests/test_ci_waiting.py::test_a11_zero_model_calls_while_waiting",
     "A12": "tests/test_queue_lifecycle.py (no model call on an empty/waiting queue)",
-    "A17": "live: run the pilot issue with OpenCode (see docs/pilot.md); the config is engine-swappable",
+    "A17": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (both engines)",
     "A19": "tests/test_policy_engine.py::test_merge_is_never_allowed_flatly_for_a_worker",
     "A20": "live: tests/test_runtime_podman.py live markers (engine-independent sandbox probe)",
     "A21": "tests/test_runtime_podman.py (refuse a profile the backend cannot enforce)",
@@ -118,6 +121,22 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A80": "tests/test_agent_adapter_contract.py (OpenCode adapter satisfies the AgentAdapter contract)",
 }
 
+#: Evidence per step-2 test (issue #12 qualifies the second engine). The keys
+#: come from the spec's "From step | 2 |" row, like step 1.
+STEP2_EVIDENCE: dict[str, str] = {
+    "A18": "tests/test_engine_independence.py + tests/test_first_workflow.py (engine switch)",
+    "A23": "tests/test_policy_engine.py (a duplicated approval gives one continuation)",
+    "A34": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (capabilities)",
+    "A35": "tests/test_policy_engine.py (an old approval answer after a restart grants nothing)",
+    "A36": "tests/test_gateway_service.py + tests/test_first_workflow.py (journal reconciles a lost answer)",
+    "A51": "tests/test_agent_adapter_contract.py (unmodified CLI, native login, no API key)",
+    "A52": "live: provider quota handling needs a live provider (later step; docs/pilot.md)",
+    "A54": "live: message channel between workers (later issue; docs/pilot.md)",
+}
+
+#: Every evidence map, keyed by the step it covers.
+EVIDENCE: dict[int, dict[str, str]] = {1: STEP1_EVIDENCE, 2: STEP2_EVIDENCE}
+
 
 def _test_bodies_exist(symbol: str) -> bool:
     """True when every referenced file/symbol an evidence string names is real.
@@ -140,38 +159,42 @@ def _test_bodies_exist(symbol: str) -> bool:
     return True
 
 
-# Step-1 evidence checks ------------------------------------------------
+# Evidence checks -----------------------------------------------------
 
 
-def test_step1_evidence_keys_match_the_canonical_spec_set():
+def test_evidence_keys_match_the_canonical_spec_set():
     """The evidence keys are derived from the spec, not a hand-copied list.
 
-    This is the guard that would have caught the original "A50" slip: the
-    set of step-1 tests comes from the spec's own "From step | 1 |" row, so
-    a misspelled or misplaced test cannot be added to the evidence silently.
+    This is the guard that would have caught the original "A50" slip: each
+    step's evidence set comes from the spec's own "From step | N |" row, so
+    a misspelled or misplaced test cannot be added silently.
     """
-    canonical = STEP_TESTS[1]
-    assert canonical, "spec's step-1 row names no mandatory tests"
-    extra = set(STEP1_EVIDENCE) - canonical
-    missing = canonical - set(STEP1_EVIDENCE)
-    assert not extra, f"evidence names tests the spec does not require in step 1: {sorted(extra)}"
-    assert not missing, f"spec requires step-1 tests with no evidence: {sorted(missing)}"
+    for step, evidence in EVIDENCE.items():
+        canonical = STEP_TESTS[step]
+        assert canonical, f"spec's step-{step} row names no mandatory tests"
+        extra = set(evidence) - canonical
+        missing = canonical - set(evidence)
+        assert not extra, f"step-{step} evidence names tests the spec does not require: {sorted(extra)}"
+        assert not missing, f"spec requires step-{step} tests with no evidence: {sorted(missing)}"
 
 
 def test_live_tests_are_marked_live_and_never_claimed_passing():
-    for test_id, evidence in STEP1_EVIDENCE.items():
-        is_live = evidence.startswith("live:")
-        assert is_live or evidence, f"{test_id} has empty evidence"
-        if is_live:
-            # A live entry must still point at a real probe (a test file or
-            # the pilot doc) so a maintainer can see where and how to run it;
-            # it is never claimed to pass silently here.
-            assert _test_bodies_exist(evidence.split("live:", 1)[1]), (
-                f"{test_id} live entry must point at a real probe, got: {evidence}"
-            )
-        else:
-            # A non-live entry must name tests that exist in this repository.
-            assert _test_bodies_exist(evidence), f"{test_id} evidence names nothing real: {evidence}"
+    for step, evidence in EVIDENCE.items():
+        for test_id, evidence_text in evidence.items():
+            is_live = evidence_text.startswith("live:")
+            assert is_live or evidence_text, f"{test_id} has empty evidence"
+            if is_live:
+                # A live entry must still point at a real probe (a test file
+                # or a doc) so a maintainer can see where and how to run it;
+                # it is never claimed to pass silently here.
+                assert _test_bodies_exist(evidence_text.split("live:", 1)[1]), (
+                    f"{test_id} live entry must point at a real probe, got: {evidence_text}"
+                )
+            else:
+                # A non-live entry must name tests that exist in this repo.
+                assert _test_bodies_exist(evidence_text), (
+                    f"{test_id} (step {step}) evidence names nothing real: {evidence_text}"
+                )
 
 
 # All-step consistency ------------------------------------------------
