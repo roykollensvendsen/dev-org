@@ -1,11 +1,12 @@
-"""OpenCode adapter over the Agent Client Protocol.
+"""OpenCode and Hermes adapters over the Agent Client Protocol.
 
-The primary adapter for issue #8, per ADR-DEV-005. It implements the
-engine-independent ``AgentAdapter`` protocol (section 4.1) by speaking ACP
-over stdio to ``opencode acp``.
+The primary adapters for issues #8 and #32, per ADR-DEV-005 and
+ADR-DEV-009. They implement the engine-independent ``AgentAdapter`` protocol
+(section 4.1) by speaking ACP over stdio: OpenCode as ``opencode acp``,
+Hermes as the ``hermes-acp`` server directly.
 
 The ACP surface used here is the stable v1 client surface, verified against
-the local engine: initialize, new_session, prompt, cancel, resume_session,
+the local engines: initialize, new_session, prompt, cancel, resume_session,
 load_session, close, list_sessions. The SDK's ``spawn_agent_process`` starts
 the agent subprocess and returns a connection whose snake_case methods
 mirror those operations.
@@ -28,6 +29,10 @@ if TYPE_CHECKING:
     from acp.client.connection import ClientSideConnection
 
     from dev_org.state.models import Attempt, Checkpoint, Event, Task
+
+#: The pinned engine/adapter version pairs (section 4.1: registered together).
+OPENCODE_VERSION = "2.0.29"
+HERMES_VERSION = "0.21.3"
 
 
 class _Client(Client):
@@ -85,22 +90,49 @@ class _Client(Client):
     async def write_text_file(self, session_id: str, path: str, content: str, **kwargs: Any) -> Any: ...
 
 
-class OpenCodeApcAdapter:
-    """Talk to a local OpenCode process over ACP (Agent Client Protocol)."""
+class AcpAdapter:
+    """Talk to any ACP-speaking engine over the Agent Client Protocol.
 
-    def __init__(self, *, command: str = "opencode", version: str = "0.0.0") -> None:
-        """Bind the adapter to the engine command and a pinned version."""
+    One adapter per engine, parameterized by the engine command and its
+    optional ACP subcommand: OpenCode runs ``opencode acp``, Hermes runs
+    ``hermes-acp`` directly. The engine name is the adapter's own class, so
+    the capability report never lies about which engine is behind it.
+    """
+
+    #: The engine's name for capability reports and event sources.
+    engine_name = "acp"
+    #: The pinned engine version for this adapter (section 4.1).
+    engine_version = "0.0.0"
+
+    def __init__(self, *, command: str, version: str | None = None, acp_args: tuple[str, ...] = ()) -> None:
+        """Bind the adapter to the engine command, optional ACP args, and version."""
         self.command = command
-        self.version = version
+        self.acp_args = acp_args
+        self.version = version or self.engine_version
 
     def report_capabilities(self) -> Capabilities:
-        """OpenCode supports the full worker contract; the version is pinned."""
-        return Capabilities(version=self.version)
+        """What this ACP engine supports, emulates, or lacks (section 4.1).
+
+        ACP covers start, message delivery, resume, and a normalized event
+        stream, so those are reported as supported; usage measurement,
+        approval flow, and delegation are unavailable, and the core must
+        show unknown usage as unknown, never as zero.
+        """
+        return Capabilities(
+            version=self.version,
+            start="supported",
+            events="supported",
+            interruption="supported",
+            approval_flow="unavailable",
+            resume="supported",
+            delegation="unavailable",
+            usage_measurement="unavailable",
+        )
 
     @asynccontextmanager
     async def _connection(self) -> AsyncIterator[ClientSideConnection]:
         """A connected, initialized ACP session with the agent subprocess."""
-        async with spawn_agent_process(_Client(), self.command, "acp", cwd="/tmp/opencode") as (
+        async with spawn_agent_process(_Client(), self.command, *self.acp_args, cwd="/tmp/opencode") as (
             conn,
             _process,
         ):
@@ -154,3 +186,34 @@ class OpenCodeApcAdapter:
         """Return artifacts, evidence, unresolved items, and next action."""
         msg = "result delivery lands with the pilot in #11"
         raise NotImplementedError(msg)
+
+
+class OpenCodeApcAdapter(AcpAdapter):
+    """OpenCode over ACP (``opencode acp``), per ADR-DEV-005."""
+
+    engine_name = "opencode"
+    engine_version = OPENCODE_VERSION
+
+    def __init__(self, *, command: str = "opencode", version: str | None = None) -> None:
+        """Bind the adapter to the OpenCode command and the pinned version."""
+        super().__init__(command=command, version=version, acp_args=("acp",))
+
+
+class HermesApcAdapter(AcpAdapter):
+    """Hermes over ACP (``hermes-acp``), a documented fourth engine (ADR-DEV-009)."""
+
+    engine_name = "hermes"
+    engine_version = HERMES_VERSION
+
+    def __init__(self, *, command: str = "hermes-acp", version: str | None = None) -> None:
+        """Bind the adapter to the Hermes ACP command and the pinned version."""
+        super().__init__(command=command, version=version)
+
+
+__all__ = [
+    "HERMES_VERSION",
+    "OPENCODE_VERSION",
+    "AcpAdapter",
+    "HermesApcAdapter",
+    "OpenCodeApcAdapter",
+]
