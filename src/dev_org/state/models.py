@@ -88,6 +88,24 @@ class Approval(DomainModel):
     created_at: datetime = Field(default_factory=UTCNOW)
 
 
+class CiWaitCondition(DomainModel):
+    """The durable record of one CI wait (section 5: Waiting).
+
+    Section 10.1 lists wait conditions among the durable state. The record
+    carries the code version (sha) so a later result is only trusted when it
+    belongs to the same commit.
+    """
+
+    task_id: str
+    repo: str
+    sha: str  # the code version the result must belong to
+    check_name: str
+    next_action: str
+    created_at: datetime = Field(default_factory=UTCNOW)
+    resolved: bool = False
+    result: str | None = None  # "success" | "failure" | "pending"
+
+
 class Checkpoint(DomainModel):
     """An engine-independent snapshot a different engine can continue from."""
 

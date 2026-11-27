@@ -6,8 +6,8 @@ for external changes; it never calls a board, Git, CI, or other external
 target directly.
 """
 
-from dev_org.core.ci_waiting import CiWaitCondition, CiWaiter, CiWaitStore
+from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.state.models import Reservation, Task
 
-__all__ = ["CiWaitCondition", "CiWaitStore", "CiWaiter", "Reservation", "Task", "TaskLifecycle"]
+__all__ = ["CiWaiter", "Reservation", "Task", "TaskLifecycle"]
