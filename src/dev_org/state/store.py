@@ -75,6 +75,10 @@ class Store(Protocol):
         ...
 
 
+#: Dispatch order for the queue, most urgent first (specification section 1).
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2}
+
+
 @dataclass
 class InMemoryStore:
     """A deterministic store for tests: nothing survives the process.
@@ -135,5 +139,13 @@ class InMemoryStore:
         return [e for e in self.events if e.task_id == task_id]
 
     def ready_tasks(self, project_id: str) -> list[Task]:
-        """Return the ready tasks for a project."""
-        return [t for t in self.tasks.values() if t.project_id == project_id and t.status == "Ready"]
+        """Return the ready tasks for a project, most urgent first.
+
+        The client's highest-priority clarified work comes first (specification
+        section 1; acceptance test A03): tasks are ordered by priority, with the
+        earliest-created task first among equal priority so the ordering is
+        stable.
+        """
+        ready = [t for t in self.tasks.values() if t.project_id == project_id and t.status == "Ready"]
+        ready.sort(key=lambda t: (PRIORITY_ORDER.get(t.priority, 3), t.created_at))
+        return ready
