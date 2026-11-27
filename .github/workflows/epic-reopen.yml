@@ -1,0 +1,42 @@
+name: epic-reopen
+
+# Reopens an epic that was closed while it still has open children.
+#
+# The PR-time guard in checks.yml only sees "Closes #N" in PR bodies; it
+# cannot see a direct issue close. This workflow reacts to the issues:
+# closed event itself: if the closed issue is an epic (type:epic) and
+# issues still name it as "Part of epic #N", it is reopened with a comment
+# naming the children, so the epic keeps collecting its work until every
+# child is done.
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  reopen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: contains(github.event.issue.labels.*.name, 'type:epic')
+    steps:
+      - name: Reopen an epic closed with open children
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n="${{ github.event.issue.number }}"
+          echo "Epic #$n was closed; checking for open children."
+          # Open children name the epic in their body as "Part of epic #N".
+          children=$(gh issue list --repo "${{ github.repository }}" --state open \
+            --search "\"Part of epic #$n\" in:body" --json number \
+            -q '[.[].number] | map(tostring) | join(",")')
+          if [ -z "$children" ]; then
+            echo "Epic #$n has no open children; stays closed."
+            exit 0
+          fi
+          echo "Epic #$n still has open children: #$children"
+          gh issue reopen "$n" --repo "${{ github.repository }}"
+          gh issue comment "$n" --repo "${{ github.repository }}" \
+            --body "Reopened automatically: this epic was closed while it still has open children (#$children). An epic stays open until every issue naming it as 'Part of epic #N' is closed."
+          echo "Reopened epic #$n."
