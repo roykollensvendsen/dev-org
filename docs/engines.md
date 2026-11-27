@@ -13,6 +13,7 @@ the contract tests.
 |---|---|---|
 | OpenCode | `OpenCodeApcAdapter` (ACP, primary), `OpenCodeHttpAdapter` (HTTP fallback) | the user's configured provider APIs (chutes, openrouter, anthropic) |
 | Claude Code | `ClaudeCodeAdapter` (official Agent SDK over the unmodified CLI) | the user's native `claude.ai` subscription login; no `ANTHROPIC_API_KEY` (A51) |
+| Codex | `CodexAdapter` (unmodified CLI over `codex exec --json`) | the user's qualified ChatGPT plan login; no `OPENAI_API_KEY` (A50) |
 
 ## Capability report (as enforced, not assumed)
 
@@ -20,15 +21,15 @@ the contract tests.
 capability; a missing capability leads to another qualified choice or a
 concrete blockage, never a silent "supported" (section 4.1).
 
-| Capability | OpenCode (ACP/HTTP) | Claude Code | Notes |
-|---|---|---|---|
-| start | supported | supported | a pinned session per attempt; a repeated start cannot create a second owner |
-| events (follow run) | supported (stream-json / SDK) | supported (transcript) | `follow_run` reads what the engine recorded; no model replay |
-| interruption | supported | supported (SDK `interrupt`) | a received interrupt is not a confirmed termination; the adapter reports the stop |
-| resume | supported | supported (SDK `resume` by session id) | the conversation lives in the engine's own session store |
-| approval flow | unavailable | unavailable | policy and the gateway decide approvals, not the engine (section 3.2) |
-| delegation | unavailable | unavailable | internal subagents stay within the same mandate; organization tasks go through dev-org |
-| usage measurement | unavailable | unavailable | the CLI exposes no billable count, so usage is shown as unknown, never as zero |
+| Capability | OpenCode (ACP/HTTP) | Claude Code | Codex | Notes |
+|---|---|---|---|---|
+| start | supported | supported | supported | a pinned session/thread per attempt; a repeated start cannot create a second owner |
+| events (follow run) | supported (stream-json / SDK) | supported (transcript) | supported (JSONL exec events) | `follow_run` reads what the engine recorded; no model replay |
+| interruption | supported | supported (SDK `interrupt`) | supported (CLI stop) | a received interrupt is not a confirmed termination; the adapter reports the stop |
+| resume | supported | supported (SDK `resume` by session id) | supported (`codex exec resume <thread_id>`) | the conversation lives in the engine's own session store |
+| approval flow | unavailable | unavailable | unavailable | policy and the gateway decide approvals, not the engine (section 3.2) |
+| delegation | unavailable | unavailable | unavailable | internal subagents stay within the same mandate; organization tasks go through dev-org |
+| usage measurement | unavailable | unavailable | unavailable | the CLI exposes no billable count, so usage is shown as unknown, never as zero |
 
 ## How each claim is enforced
 
@@ -48,11 +49,19 @@ concrete blockage, never a silent "supported" (section 4.1).
   live test runs a real turn under the native login (it skips when the
   engine is not reachable), asserts the environment carries no
   `ANTHROPIC_API_KEY`, and asserts the adapter holds no credential state.
+- **Codex's A50 property is verified live.** The contract suite's live test
+  removes `OPENAI_API_KEY` from the environment and runs a real turn, so
+  only the ChatGPT plan login can have answered; it skips when the engine
+  is not reachable or has no login (as in CI).
 
 ## What is still live, and where it runs
 
 - A real end-to-end delivery with each engine (A17's full loop) is the
-  pilot's job and runs against the qualified engine where it is installed;
-  the deterministic contract and engine-independence tests run in CI.
+  handover's job (#13) and runs against the qualified engine where it is
+  installed; the deterministic contract and engine-independence tests run
+  in CI.
+- Codex message delivery into a live session uses the CLI's queue surface,
+  which is not yet qualified; the adapter raises clearly rather than
+  pretending a message was delivered.
 - Rootless Podman sandbox probes (A20/A40) are `live`-marked and run where
   `podman` is installed, as in the step-1 registry.

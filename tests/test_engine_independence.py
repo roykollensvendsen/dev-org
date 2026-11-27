@@ -23,7 +23,14 @@ from datetime import UTC, datetime
 
 import pytest
 
-from dev_org.agents import CLAUDE_CODE_VERSION, ClaudeCodeAdapter, OpenCodeApcAdapter, OpenCodeHttpAdapter
+from dev_org.agents import (
+    CLAUDE_CODE_VERSION,
+    CODEX_VERSION,
+    ClaudeCodeAdapter,
+    CodexAdapter,
+    OpenCodeApcAdapter,
+    OpenCodeHttpAdapter,
+)
 from dev_org.agents.protocol import AgentAdapter, Capabilities
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.gateway.service import GatewayService
@@ -36,6 +43,7 @@ QUALIFIED_ADAPTERS = [
     pytest.param(OpenCodeApcAdapter(command="opencode", version="2.0.29"), id="opencode-acp"),
     pytest.param(OpenCodeHttpAdapter(command="opencode", version="2.0.29"), id="opencode-http"),
     pytest.param(ClaudeCodeAdapter(command="claude", version=CLAUDE_CODE_VERSION), id="claude-code"),
+    pytest.param(CodexAdapter(command="codex", version=CODEX_VERSION), id="codex"),
 ]
 
 
