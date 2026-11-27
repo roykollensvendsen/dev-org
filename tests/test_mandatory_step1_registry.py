@@ -105,7 +105,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A40": "live: tests/test_runtime_podman.py live markers (sandbox boundary probe)",
     "A41": "live: needs the real GitHub gateway (A01/A19/A22 cover the deterministic parts; docs/pilot.md)",
     "A42": "tests/test_ci_waiting.py::test_a42_reconciliation_finds_a_result_after_a_dropped_event",
-    "A43": "live: needs the separate candidate environment (test board/DB; docs/pilot.md)",
+    "A43": "tests/test_candidate_environment.py (candidate cannot touch the active queue)",
     "A44": "tests/test_gateway_service.py (bootstrap stays in PR mode: merge is denied)",
     "A46": "tests/test_policy_engine.py (independent approval boundary; candidate cannot self-approve)",
     "A52": "live: provider quota handling needs a live provider (later step; docs/pilot.md)",

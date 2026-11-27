@@ -65,8 +65,13 @@ class TaskLifecycle:
 
     # -- transitions ---------------------------------------------------
 
-    def dispatch(self, task: Task) -> Reservation:
-        """Move a ready task to in progress and reserve it for a worker."""
+    def dispatch(self, task: Task, *, worker_id: str = "worker-1") -> Reservation:
+        """Move a ready task to in progress and reserve it for a worker.
+
+        ``worker_id`` is injectable so a candidate can run under its own
+        identity (issue #36, A43) instead of the active worker's; the
+        default keeps the existing behaviour for ordinary work.
+        """
         if task.status != READY:
             msg = f"cannot dispatch a task in state {task.status}"
             raise ValueError(msg)
@@ -74,7 +79,7 @@ class TaskLifecycle:
         reservation = Reservation(
             id=_new_id("reservation"),
             attempt_id=attempt.id,
-            worker_id="worker-1",
+            worker_id=worker_id,
             ownership_number=next(self._ownership),
             fencing_token=_new_id("token"),
             lease_expires_at=self.clock() + timedelta(minutes=30),
