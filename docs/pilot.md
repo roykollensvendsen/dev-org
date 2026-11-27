@@ -37,11 +37,16 @@ worker, board, Git/PR, and CI against the deterministic in-memory store:
 
 ## Mandatory step-1 acceptance tests
 
-The full mapping lives in `tests/test_mandatory_step1_registry.py`. Each of
-the step-1 tests from specification section 12 maps to either a test that
-runs in this suite or a clearly marked live test and how to run it. The
-registry fails if a non-live entry names nothing real, so a renamed or
-deleted test cannot leave a stale claim.
+The full mapping lives in `tests/test_mandatory_step1_registry.py`. The
+step-to-test map is parsed from the specification's own "From step" rows
+(1-5), so the spec is the single source: the step-1 evidence keys are
+derived from it, every step list may only cite tests the A-table defines,
+and the bootstrap backlog, when present, must carry exactly the spec's
+step-1 statement. This is what would catch a transcription like "A50" where
+the spec says "A80" in any later step. Each step-1 test maps to either a
+test that runs in this suite or a clearly marked live test with where and
+how to run it. The registry fails if a non-live entry names nothing real,
+so a renamed or deleted test cannot leave a stale claim.
 
 ## Measured time and cost limits
 
