@@ -17,6 +17,59 @@ permissions:
   contents: read
 
 jobs:
+  # A PR may not close an epic (type:epic) while it still has open children:
+  # issues whose body names it as "Part of epic #N". Closing the epic early
+  # strands the children without an open collector, which happened with #14
+  # before this check existed. The job reads the PR body, finds every
+  # "Closes #N", and fails when any of those is an epic with open children.
+  epic-close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: An epic with open children cannot be closed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          body="${{ github.event.pull_request.body }}"
+          if [ -z "$body" ]; then
+            echo "No PR body; nothing to check."
+            exit 0
+          fi
+          # Every "Closes #N" the body names, with or without surrounding text.
+          closes=$(printf '%s\n' "$body" | grep -oE 'Closes #?[0-9]+' | grep -oE '[0-9]+' | sort -u)
+          if [ -z "$closes" ]; then
+            echo "The PR body closes no issue."
+            exit 0
+          fi
+          blocked=""
+          for n in $closes; do
+            labels=$(gh issue view "$n" --repo "${{ github.repository }}" --json labels -q '[.labels[].name] | join(",")')
+            case ",$labels," in
+              *",type:epic,"*) ;;
+              *) echo "#$n is not an epic; nothing to check."; continue ;;
+            esac
+            # Open children name the epic in their body as "Part of epic #N".
+            children=$(gh issue list --repo "${{ github.repository }}" --state open \
+              --search "\"Part of epic #$n\" in:body" --json number \
+              -q '[.[].number] | map(tostring) | join(",")')
+            if [ -n "$children" ]; then
+              echo "Epic #$n still has open children: #$children"
+              blocked="$blocked $n"
+            else
+              echo "Epic #$n has no open children."
+            fi
+          done
+          if [ -n "$blocked" ]; then
+            echo "::error::Refusing to close epic(s) with open children:$blocked. An epic stays open until every issue naming it as 'Part of epic #N' is closed."
+            exit 1
+          fi
+          echo "No epic is closed while it has open children."
+
   # Conventional Commits, over the commits this pull request adds.
   commits:
     runs-on: ubuntu-latest
