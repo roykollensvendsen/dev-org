@@ -10,3 +10,5 @@ src/*/_version.py
 coverage.xml
 htmlcov/
 scripts/.mutate-recovery.json
+# GitHub App private keys must never be committed.
+*.pem
