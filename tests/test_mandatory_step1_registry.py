@@ -156,6 +156,7 @@ STEP3_EVIDENCE: dict[str, str] = {
 #: The keys come from the spec's "From step | 4 |" row; the rest (A04, A08,
 #: A24, A26, A65) arrive with issues #50-#53.
 STEP4_EVIDENCE: dict[str, str] = {
+    "A08": "tests/test_snapshot.py (move preserves secured code, PR, wait, issue id)",
     "A63": "tests/test_nodes.py (second worker with different capabilities; compatible nodes only)",
     "A64": "tests/test_nodes.py (fresh qualified nodes only; unknown is not zero)",
 }

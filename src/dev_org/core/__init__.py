@@ -21,9 +21,18 @@ from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.core.nodes import NodeRegistry, NodeStatus, TaskRequirements, WorkerNode
 from dev_org.core.scheduler import ImprovementBudget, Scheduler
+from dev_org.core.snapshot import (
+    PROGRAM_VERSION,
+    SNAPSHOT_SCHEMA,
+    Snapshot,
+    SnapshotRefusedError,
+    SnapshotService,
+)
 from dev_org.state.models import Reservation, Task
 
 __all__ = [
+    "PROGRAM_VERSION",
+    "SNAPSHOT_SCHEMA",
     "ActivationGates",
     "ActivationRefusedError",
     "ActivationService",
@@ -47,6 +56,9 @@ __all__ = [
     "ReplayReport",
     "Reservation",
     "Scheduler",
+    "Snapshot",
+    "SnapshotRefusedError",
+    "SnapshotService",
     "Task",
     "TaskLifecycle",
     "TaskRequirements",

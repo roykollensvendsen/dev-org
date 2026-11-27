@@ -34,6 +34,10 @@ class Store(Protocol):
         """Return the task with that ID, or None if it is not stored."""
         ...
 
+    def all_tasks(self) -> list[Task]:
+        """Return every task in the store, in no guaranteed order."""
+        ...
+
     def save_attempt(self, attempt: Attempt) -> None:
         """Persist an attempt, replacing any previous version of the same ID."""
         ...
@@ -101,6 +105,10 @@ class InMemoryStore:
     def get_task(self, task_id: str) -> Task | None:
         """Return the stored task, or None."""
         return self.tasks.get(task_id)
+
+    def all_tasks(self) -> list[Task]:
+        """Return every stored task."""
+        return list(self.tasks.values())
 
     def save_attempt(self, attempt: Attempt) -> None:
         """Store an attempt under its ID."""
