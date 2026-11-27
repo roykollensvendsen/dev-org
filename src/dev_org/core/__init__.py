@@ -6,6 +6,7 @@ for external changes; it never calls a board, Git, CI, or other external
 target directly.
 """
 
+from dev_org.core.candidate import CandidateEnvironment, CandidateSnapshot
 from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
@@ -13,6 +14,8 @@ from dev_org.core.scheduler import ImprovementBudget, Scheduler
 from dev_org.state.models import Reservation, Task
 
 __all__ = [
+    "CandidateEnvironment",
+    "CandidateSnapshot",
     "CiWaiter",
     "HandoverError",
     "HandoverService",
