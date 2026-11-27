@@ -142,8 +142,10 @@ STEP3_EVIDENCE: dict[str, str] = {
     "A03": "tests/test_scheduler.py (production before improvement; priority)",
     "A14": "tests/test_activation.py (upgrade and rollback while an issue waits on CI)",
     "A16": "tests/test_scheduler.py (idle with no work and no candidate)",
+    "A29": "tests/test_evaluation.py (replay compares candidate with baseline)",
     "A43": "tests/test_candidate_environment.py (candidate cannot touch the active queue)",
     "A45": "tests/test_activation.py (qualified before active; rollback without double continuations)",
+    "A47": "tests/test_evaluation.py (baseline and two candidates on the same task set)",
     "A48": "tests/test_scheduler.py (candidate budget throttled before reserved capacity)",
     "A49": "tests/test_activation.py (candidate failure keeps the active version)",
 }
@@ -193,7 +195,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
-    3: "A29/A47 arrive with issue #38 (measurement), A59/A60 with issue #39 (change frame)",
+    3: "A59/A60 arrive with issue #39 (change frame and promotion service)",
     5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
 }
 
