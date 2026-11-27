@@ -19,6 +19,7 @@ from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.evaluation import CountingCi, ReplayEvaluator, ReplayEvent, ReplayReport
 from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
+from dev_org.core.nodes import NodeRegistry, NodeStatus, TaskRequirements, WorkerNode
 from dev_org.core.scheduler import ImprovementBudget, Scheduler
 from dev_org.state.models import Reservation, Task
 
@@ -37,6 +38,8 @@ __all__ = [
     "HandoverError",
     "HandoverService",
     "ImprovementBudget",
+    "NodeRegistry",
+    "NodeStatus",
     "PolicyController",
     "PromotionService",
     "ReplayEvaluator",
@@ -46,4 +49,6 @@ __all__ = [
     "Scheduler",
     "Task",
     "TaskLifecycle",
+    "TaskRequirements",
+    "WorkerNode",
 ]
