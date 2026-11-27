@@ -21,6 +21,7 @@ from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.core.node_lease import LeaseRefusedError, LeaseState, NodeLeaseService
 from dev_org.core.nodes import NodeRegistry, NodeStatus, TaskRequirements, WorkerNode
+from dev_org.core.parallel import ContractChange, ParallelAssignmentService, Workspace, WorkspaceConflictError
 from dev_org.core.scheduler import ImprovementBudget, Scheduler
 from dev_org.core.snapshot import (
     PROGRAM_VERSION,
@@ -44,6 +45,7 @@ __all__ = [
     "ChangeFrame",
     "ChangeProposal",
     "CiWaiter",
+    "ContractChange",
     "CountingCi",
     "HandoverError",
     "HandoverService",
@@ -53,6 +55,7 @@ __all__ = [
     "NodeLeaseService",
     "NodeRegistry",
     "NodeStatus",
+    "ParallelAssignmentService",
     "PolicyController",
     "PromotionService",
     "ReplayEvaluator",
@@ -67,4 +70,6 @@ __all__ = [
     "TaskLifecycle",
     "TaskRequirements",
     "WorkerNode",
+    "Workspace",
+    "WorkspaceConflictError",
 ]
