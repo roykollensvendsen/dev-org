@@ -135,6 +135,19 @@ STEP2_EVIDENCE: dict[str, str] = {
     "A54": "tests/test_handover.py (messages queued without a competing session)",
 }
 
+#: Evidence per step-3 test delivered so far (issue #35 scheduler, #36
+#: candidate, #37 activation). The keys come from the spec's "From step |
+#: 3 |" row, like the other steps.
+STEP3_EVIDENCE: dict[str, str] = {
+    "A03": "tests/test_scheduler.py (production before improvement; priority)",
+    "A14": "tests/test_activation.py (upgrade and rollback while an issue waits on CI)",
+    "A16": "tests/test_scheduler.py (idle with no work and no candidate)",
+    "A43": "tests/test_candidate_environment.py (candidate cannot touch the active queue)",
+    "A45": "tests/test_activation.py (qualified before active; rollback without double continuations)",
+    "A48": "tests/test_scheduler.py (candidate budget throttled before reserved capacity)",
+    "A49": "tests/test_activation.py (candidate failure keeps the active version)",
+}
+
 #: Evidence per step-5 test that this early delivery covers (Codex, the
 #: third engine). A50 is the only step-5 test this issue delivers; the rest
 #: of step 5 (Redmine, migration, reuse) stays in its own epic.
@@ -143,7 +156,12 @@ STEP5_EVIDENCE: dict[str, str] = {
 }
 
 #: Every evidence map, keyed by the step it covers.
-EVIDENCE: dict[int, dict[str, str]] = {1: STEP1_EVIDENCE, 2: STEP2_EVIDENCE, 5: STEP5_EVIDENCE}
+EVIDENCE: dict[int, dict[str, str]] = {
+    1: STEP1_EVIDENCE,
+    2: STEP2_EVIDENCE,
+    3: STEP3_EVIDENCE,
+    5: STEP5_EVIDENCE,
+}
 
 
 def _test_bodies_exist(symbol: str) -> bool:
@@ -175,6 +193,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
+    3: "A29/A47 arrive with issue #38 (measurement), A59/A60 with issue #39 (change frame)",
     5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
 }
 
