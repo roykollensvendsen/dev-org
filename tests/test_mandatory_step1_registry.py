@@ -152,6 +152,14 @@ STEP3_EVIDENCE: dict[str, str] = {
     "A60": "tests/test_change_frame.py (unknown risk quarantined; outside frame rejected)",
 }
 
+#: Evidence per step-4 test delivered so far (issue #49 node registration).
+#: The keys come from the spec's "From step | 4 |" row; the rest (A04, A08,
+#: A24, A26, A65) arrive with issues #50-#53.
+STEP4_EVIDENCE: dict[str, str] = {
+    "A63": "tests/test_nodes.py (second worker with different capabilities; compatible nodes only)",
+    "A64": "tests/test_nodes.py (fresh qualified nodes only; unknown is not zero)",
+}
+
 #: Evidence per step-5 test that this early delivery covers (Codex, the
 #: third engine). A50 is the only step-5 test this issue delivers; the rest
 #: of step 5 (Redmine, migration, reuse) stays in its own epic.
@@ -164,6 +172,7 @@ EVIDENCE: dict[int, dict[str, str]] = {
     1: STEP1_EVIDENCE,
     2: STEP2_EVIDENCE,
     3: STEP3_EVIDENCE,
+    4: STEP4_EVIDENCE,
     5: STEP5_EVIDENCE,
 }
 
@@ -197,6 +206,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
+    4: "A04/A08/A24/A26/A65 arrive with issues #50-#53 (snapshot, lease, parallel, status)",
     5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
 }
 
