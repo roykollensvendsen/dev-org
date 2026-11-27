@@ -134,8 +134,15 @@ STEP2_EVIDENCE: dict[str, str] = {
     "A54": "live: message channel between workers (later issue; docs/pilot.md)",
 }
 
+#: Evidence per step-5 test that this early delivery covers (Codex, the
+#: third engine). A50 is the only step-5 test this issue delivers; the rest
+#: of step 5 (Redmine, migration, reuse) stays in its own epic.
+STEP5_EVIDENCE: dict[str, str] = {
+    "A50": "tests/test_agent_adapter_contract.py (unmodified CLI, ChatGPT login, no API key)",
+}
+
 #: Every evidence map, keyed by the step it covers.
-EVIDENCE: dict[int, dict[str, str]] = {1: STEP1_EVIDENCE, 2: STEP2_EVIDENCE}
+EVIDENCE: dict[int, dict[str, str]] = {1: STEP1_EVIDENCE, 2: STEP2_EVIDENCE, 5: STEP5_EVIDENCE}
 
 
 def _test_bodies_exist(symbol: str) -> bool:
@@ -162,20 +169,36 @@ def _test_bodies_exist(symbol: str) -> bool:
 # Evidence checks -----------------------------------------------------
 
 
+#: Steps where the evidence map is intentionally partial: not every test the
+#: spec lists for the step is delivered here, and the gap is a real, named
+#: one. A partial step must still evidence every test it claims, and its
+#: reason must point at where the rest lives. An empty partial step is a lie.
+PARTIAL_STEPS: dict[int, str] = {
+    5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
+}
+
+
 def test_evidence_keys_match_the_canonical_spec_set():
     """The evidence keys are derived from the spec, not a hand-copied list.
 
     This is the guard that would have caught the original "A50" slip: each
     step's evidence set comes from the spec's own "From step | N |" row, so
-    a misspelled or misplaced test cannot be added silently.
+    a misspelled or misplaced test cannot be added silently. A fully
+    delivered step must evidence every test; a step marked partial in
+    PARTIAL_STEPS may evidence a subset, with its reason naming where the
+    rest lives.
     """
     for step, evidence in EVIDENCE.items():
         canonical = STEP_TESTS[step]
         assert canonical, f"spec's step-{step} row names no mandatory tests"
         extra = set(evidence) - canonical
-        missing = canonical - set(evidence)
         assert not extra, f"step-{step} evidence names tests the spec does not require: {sorted(extra)}"
-        assert not missing, f"spec requires step-{step} tests with no evidence: {sorted(missing)}"
+        missing = canonical - set(evidence)
+        if step in PARTIAL_STEPS:
+            assert evidence, f"step-{step} is marked partial but evidences nothing"
+            assert PARTIAL_STEPS[step], f"step-{step} partial reason is empty"
+        else:
+            assert not missing, f"spec requires step-{step} tests with no evidence: {sorted(missing)}"
 
 
 def test_live_tests_are_marked_live_and_never_claimed_passing():

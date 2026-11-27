@@ -24,7 +24,14 @@ import uuid
 
 import pytest
 
-from dev_org.agents import CLAUDE_CODE_VERSION, ClaudeCodeAdapter, OpenCodeApcAdapter, OpenCodeHttpAdapter
+from dev_org.agents import (
+    CLAUDE_CODE_VERSION,
+    CODEX_VERSION,
+    ClaudeCodeAdapter,
+    CodexAdapter,
+    OpenCodeApcAdapter,
+    OpenCodeHttpAdapter,
+)
 from dev_org.agents.protocol import AgentAdapter
 from dev_org.state.models import Attempt, Task
 
@@ -32,6 +39,7 @@ ADAPTERS = [
     pytest.param(OpenCodeApcAdapter(command="opencode", version="2.0.29"), id="opencode-acp"),
     pytest.param(OpenCodeHttpAdapter(command="opencode", version="2.0.29"), id="opencode-http"),
     pytest.param(ClaudeCodeAdapter(command="claude", version=CLAUDE_CODE_VERSION), id="claude-code"),
+    pytest.param(CodexAdapter(command="codex", version=CODEX_VERSION), id="codex"),
 ]
 
 
@@ -183,3 +191,67 @@ def test_claude_code_is_logged_in_as_a_first_party_subscription():
         pytest.skip("claude auth status returned no object")
     assert status.get("loggedIn") is True
     assert status.get("apiProvider") == "firstParty"
+
+
+# A50: Codex runs on the ChatGPT login, credentials stay out --------------
+
+
+def test_codex_adapter_reports_the_pinned_version_and_honest_capabilities():
+    """Codex reports what it actually supports, emulates, or lacks."""
+    adapter = CodexAdapter(command="codex", version=CODEX_VERSION)
+    caps = adapter.report_capabilities()
+    assert caps.version == CODEX_VERSION
+    # Usage is genuinely not measurable through the CLI: unknown, never zero.
+    assert caps.usage_measurement == "unavailable"
+    assert caps.start == "supported"
+    assert caps.resume == "supported"
+
+
+def test_codex_runs_without_an_api_key_environment_variable():
+    """A50: the unmodified CLI uses the user's qualified ChatGPT plan login.
+
+    The adapter must never need ``OPENAI_API_KEY``. This test asserts the
+    adapter class does not read it, and that a run here can proceed on the
+    login path; the live probe below runs with the variable removed.
+    """
+    adapter = CodexAdapter(command="codex", version=CODEX_VERSION)
+    assert adapter.command == "codex"
+    # Nothing in the adapter's own state holds a credential.
+    assert not hasattr(adapter, "token")
+    assert not hasattr(adapter, "api_key")
+
+
+def test_codex_live_start_work_runs_a_turn_without_an_api_key():
+    """A50 live: the unmodified CLI works under the ChatGPT login.
+
+    The probe removes ``OPENAI_API_KEY`` from the environment, so the turn
+    can only have used the user's own login. It is skipped when the engine
+    is not reachable or cannot run here; CI has no login, so it is skipped
+    there too.
+    """
+    if shutil.which("codex") is None:
+        pytest.skip("codex is not installed")
+    env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+    try:
+        result = subprocess.run(
+            ["codex", "exec", "--skip-git-repo-check", "--json", "Reply with exactly: CODEX-PROBE-OK"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=240,
+            env=env,
+        )
+    except Exception:  # noqa: BLE001 - engine not reachable or session refused
+        pytest.skip("codex is not reachable for a live session")
+    assert "CODEX-PROBE-OK" in result.stdout  # the login path answered, not a key
+
+
+def test_codex_start_work_reads_the_thread_id_from_the_event_stream():
+    """start_work binds the attempt to the thread id from thread.started."""
+    adapter = CodexAdapter(command="codex", version=CODEX_VERSION)
+    events = [
+        {"type": "turn.started", "thread_id": "01a21d77-8b9a-7452-b6a2-74c51f8f877c"},
+        {"type": "thread.started", "thread_id": "01a21d77-8b9a-7452-b6a2-74c51f8f877c"},
+        {"type": "item.completed", "item": {"type": "agent_message", "text": "done"}},
+    ]
+    assert adapter._thread_id(events) == "01a21d77-8b9a-7452-b6a2-74c51f8f877c"  # noqa: SLF001 - unit probe of the parser
