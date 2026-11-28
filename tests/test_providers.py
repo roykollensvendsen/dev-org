@@ -61,9 +61,9 @@ def make_spec(
 ) -> WorkerPoolSpec:
     """A minimal worker pool spec for the pool tests.
 
-    ``cost`` carries the dollar/lifetime budget fields mirrored from how
-    Targon/Hippius are rented (ci_leie): rate per hour, lifetime seconds, and
-    the day/month caps. Omitted, the pool has no cost and no frame.
+    ``cost`` carries the dollar/lifetime budget fields: rate per hour,
+    lifetime seconds, and the day/month caps. Omitted, the pool has no cost
+    and no frame.
     """
     return WorkerPoolSpec(
         node_count=nodes,
@@ -110,9 +110,9 @@ def test_autoscaling_stops_at_the_budget_frame_cap():
 
 
 def test_autoscaling_stops_at_the_dollar_time_budget_frame():
-    # Faithful to ci_leie (R-40): each machine's whole lifetime (rate * ttl)
-    # must fit under the day/month dollar cap. Two machines at $1/h for 1h
-    # cost $2, so a $1 day cap lets at most one start.
+    # Each machine's whole lifetime (rate * ttl) must fit under the day/month
+    # dollar cap. Two machines at $1/h for 1h cost $2, so a $1 day cap lets
+    # at most one start.
     provider = CloudWorkerPoolProvider()
     pool = provider.create_pool(
         spec=make_spec(nodes=1, max_nodes=5, cost={"rate": 1.0, "lifetime_s": 3600, "day_cap": 1.0}),
@@ -125,10 +125,10 @@ def test_autoscaling_stops_at_the_dollar_time_budget_frame():
 
 
 def test_a_machine_that_never_started_holds_no_lifetime():
-    # ci_leie rule: a failed start or orphan holds no lifetime against the cap,
-    # so it does not block a provider's stand-in. An unregistered orphan is a VM
-    # created but never started: reconciliation removes it (it costs nothing)
-    # and the cap stays free for a real machine.
+    # A failed start or orphan holds no lifetime against the cap, so it does
+    # not block a provider's stand-in. An unregistered orphan is a VM created
+    # but never started: reconciliation removes it (it costs nothing) and the
+    # cap stays free for a real machine.
     provider = CloudWorkerPoolProvider()
     pool = provider.create_pool(
         spec=make_spec(nodes=2, max_nodes=4, cost={"rate": 10.0, "lifetime_s": 3600, "day_cap": 10.0}),
@@ -306,9 +306,9 @@ def test_a_failure_in_one_provider_does_not_block_other_qualified_capacity():
 
 
 def test_fail_over_moves_to_the_fallback_after_two_failed_starts():
-    # Faithful to bittensor-compute: Targon is tried first, and after two
-    # failed starts in a row the work moves to Hippius instead of retrying
-    # Targon (A69: a failure in one provider does not block other capacity).
+    # Targon is tried first, and after two failed starts in a row the work
+    # moves to Hippius instead of retrying Targon (A69: a failure in one
+    # provider does not block other capacity).
     targon = TargonDecentralizedWorkProvider()
     hippius = HippiusDecentralizedWorkProvider(correct_result="stand-in answer")
     dispatcher = WorkDispatcher(primary=targon, fallback=hippius)

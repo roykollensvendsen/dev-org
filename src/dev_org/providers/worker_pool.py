@@ -30,9 +30,9 @@ if TYPE_CHECKING:
 class Vm:
     """One VM owned by a pool, with a registered-worker marker.
 
-    ``started`` is whether the machine ever began its paid lifetime. Faithful
-    to ci_leie: a machine that never started holds no lifetime against the
-    cap, so an orphan or a failed start does not block the provider's stand-in.
+    ``started`` is whether the machine ever began its paid lifetime. A machine
+    that never started holds no lifetime against the cap, so an orphan or a
+    failed start does not block the provider's stand-in.
     """
 
     vm_id: str
@@ -91,7 +91,7 @@ class CloudWorkerPoolProvider:
 
     @staticmethod
     def _whole(spec: WorkerPoolSpec) -> float:
-        """What one machine's whole lifetime can cost (ci_leie: rate * ttl/3600)."""
+        """What one machine's whole lifetime can cost (rate * ttl/3600)."""
         if spec.rate_usd_hour <= 0:
             return 0.0
         return spec.rate_usd_hour * (spec.lifetime_s / 3600.0)
@@ -105,9 +105,8 @@ class CloudWorkerPoolProvider:
     def blocked(self, *, pool_id: str, extra_nodes: int = 0) -> str | None:
         """Why adding ``extra_nodes`` may not start now, or None when it may.
 
-        Faithful to ci_leie's ``blocked``: a machine starts only if its whole
-        lifetime (plus what is already reserved) fits under both the per-day
-        and per-month dollar cap (R-40).
+        A machine starts only if its whole lifetime (plus what is already
+        reserved) fits under both the per-day and per-month dollar cap.
         """
         spec = self._pools[pool_id]
         held = self._held(pool_id)
@@ -135,9 +134,9 @@ class CloudWorkerPoolProvider:
         self._by_key[idempotency_key] = pool_id
         self._vms[pool_id] = [Vm(vm_id=f"{pool_id}-vm-{i}", pool_id=pool_id) for i in range(spec.node_count)]
         self._workers[pool_id] = set()
-        # The whole lifetime of the initial fleet must fit under the caps
-        # (ci_leie.blocked) or nothing may start, exactly as an account-wide
-        # or project cap prevents any new machine (A66).
+        # The whole lifetime of the initial fleet must fit under the caps or
+        # nothing may start, exactly as an account-wide or project cap
+        # prevents any new machine (A66).
         if self.blocked(pool_id=pool_id, extra_nodes=0):
             for vm in self._vms[pool_id]:
                 vm.started = False
@@ -175,10 +174,9 @@ class CloudWorkerPoolProvider:
     def autoscale(self, *, pool_id: str, desired: int) -> int:
         """Move capacity toward desired, never past the budget frame (A66).
 
-        Two frames cap growth, faithful to how Targon/Hippius are budgeted:
-        the node ceiling (``max_nodes``) and the dollar caps that require
-        each new machine's whole lifetime to fit under the day/month frame
-        (ci_leie.blocked). Growth stops at whichever bound bites first.
+        Two frames cap growth: the node ceiling (``max_nodes``) and the dollar
+        caps that require each new machine's whole lifetime to fit under the
+        day/month frame. Growth stops at whichever bound bites first.
         """
         pool_id = str(pool_id)
         spec = self._pools[pool_id]

@@ -72,12 +72,11 @@ class CapabilityReport:
 class WorkerPoolSpec:
     """Desired worker pool capacity and its cost frame (section 7.2).
 
-    Mirrors the survivor-agent cost axioms (R-40, ci_leie): a machine may
-    start only when its whole lifetime fits under both the per-day and the
-    per-month dollar cap, and a machine that never started holds no lifetime.
-    ``rate_usd_hour`` and ``lifetime_s`` are the per-worker cost model;
-    ``day_cap_usd`` and ``month_cap_usd`` are the budget frame that
-    autoscaling and creation must never pass (A66).
+    A machine may start only when its whole lifetime fits under both the
+    per-day and the per-month dollar cap, and a machine that never started
+    holds no lifetime. ``rate_usd_hour`` and ``lifetime_s`` are the
+    per-worker cost model; ``day_cap_usd`` and ``month_cap_usd`` are the
+    budget frame that autoscaling and creation must never pass (A66).
     """
 
     node_count: int

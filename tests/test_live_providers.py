@@ -2,22 +2,27 @@
 
 This is the running verification that dev-org's provider assumptions line
 up with the real provider APIs *before* a paid trial rental is ever made.
-Nothing here creates a VM or costs money: it reads the same status the
-survivor-agent's own code reads (`targon.py`, `hippius.py`), so it needs
-only a read-path token and an explicit go.
+Nothing here creates a VM or costs money; it only reads the provider status
+endpoints, so it needs a read-path token and an explicit go.
 
 It is deliberately skipped by default. Two conditions must both hold:
 
-- the provider keys are readable (Targon from the survivor-agent keys.env
-  ``TARGON_API_KEY``, Hippius from ``~/.config/hippius/key``), and
-- ``DEV_ORG_PROVIDER_TRIAL=1`` is set, which is Roy's explicit go for a
+- the provider keys are readable from dev-org's own config, and
+- ``DEV_ORG_PROVIDER_TRIAL=1`` is set, which is the explicit go for a
   read-only probe (a paid trial rental is a separate, later step).
+
+All keys live in dev-org's own config file, ``~/.config/dev-org/keys.env``,
+as ``NAME=value`` lines: ``TARGON_API_KEY`` and ``HIPPIUS_TOKEN``. dev-org
+never reads another project's config; the file is created and owned by this
+project. (A registered key may be reused across projects by copying the
+line into this file, but that is a decision the owner makes, not a code
+dependency.)
 
 Run with:
 
     DEV_ORG_PROVIDER_TRIAL=1 uv run python -m pytest tests/test_live_providers.py -m live -q
 
-What it verifies, mirroring survivor-agent's own read paths:
+What it verifies:
 
 - Targon: ``GET /orgs`` answers and reports a real credit balance.
 - Hippius: ``GET /compute/quota/`` (or vms) answers with a real quota.
@@ -25,7 +30,7 @@ What it verifies, mirroring survivor-agent's own read paths:
 The provider result is still treated as untrusted in dev-org's contract
 terms; this probe only asserts the live contact and the account shape, not
 that renting works. A paid trial, attestation, and a teardown are the
-later step that follows your explicit yes.
+later step that follows the explicit yes.
 """
 
 from __future__ import annotations
@@ -39,19 +44,17 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-SURVIVOR_KEYS = pathlib.Path.home() / ".config" / "survivor-agent" / "keys.env"
-HIPPIUS_KEY_FILE = pathlib.Path(
-    os.environ.get("SURVIVOR_HIPPIUS_NOKKEL", "~/.config/hippius/key")
-).expanduser()
+#: The one keys file dev-org reads; owned by this project, never another's.
+DEV_ORG_KEYS = pathlib.Path.home() / ".config" / "dev-org" / "keys.env"
 TRIAL = "DEV_ORG_PROVIDER_TRIAL"
 TARGON_API = "https://api.targon.com/tha/v3"
 HIPPIUS_API = "https://api.hippius.com/api"
 
 
-def _read_survivor_key(name: str) -> str | None:
-    """Read one key from the survivor-agent keys.env, like survivor-agent does."""
+def _read_named_key(name: str) -> str | None:
+    """Read one ``NAME=value`` line from dev-org's own keys file."""
     try:
-        for line in SURVIVOR_KEYS.read_text().splitlines():
+        for line in DEV_ORG_KEYS.read_text().splitlines():
             if line.startswith(f"{name}="):
                 return line.split("=", 1)[1].strip()
     except OSError:
@@ -59,25 +62,31 @@ def _read_survivor_key(name: str) -> str | None:
     return None
 
 
+def _read_targon_key() -> str | None:
+    """dev-org's own Targon key, from its own config file."""
+    return _read_named_key("TARGON_API_KEY")
+
+
 def _read_hippius_key() -> str | None:
-    """Read the Hippius token from its key file, like survivor-agent does."""
-    try:
-        return HIPPIUS_KEY_FILE.read_text().strip() or None
-    except OSError:
-        return None
+    """dev-org's own Hippius token, from its own config file."""
+    return _read_named_key("HIPPIUS_TOKEN")
 
 
 def _trial_allowed() -> bool:
-    """Roy's explicit go for a read-only provider probe."""
+    """The explicit go for a read-only provider probe."""
     return os.environ.get(TRIAL) == "1"
 
 
 def _http_json(
-    url: str, *, token: str, headers_extra: dict[str, str] | None = None
+    url: str, *, token: str, scheme: str = "Bearer", headers_extra: dict[str, str] | None = None
 ) -> dict[str, object] | list[object] | None:
-    """A minimal GET that sends the key only in the Authorization header."""
+    """A minimal GET that sends the key only in the Authorization header.
+
+    Targon authenticates with ``Bearer <key>``; Hippius with ``Token <token>``,
+    so the scheme is per-provider.
+    """
     headers = {
-        "Authorization": "Bearer " + token,
+        "Authorization": f"{scheme} {token}",
         "Accept": "application/json",
         "Content-Type": "application/json",
         **(headers_extra or {}),
@@ -92,19 +101,22 @@ def _http_json(
 
 def _provider_ready() -> bool:
     """Both key sets and the explicit trial go must be present."""
-    return _trial_allowed() and bool(_read_survivor_key("TARGON_API_KEY") and _read_hippius_key())
+    return _trial_allowed() and bool(_read_targon_key() and _read_hippius_key())
 
 
 pytestmark = pytest.mark.skipif(
     not _provider_ready(),
-    reason="provider read probe needs TARGON_API_KEY + Hippius key and DEV_ORG_PROVIDER_TRIAL=1",
+    reason=(
+        "provider read probe needs TARGON_API_KEY + HIPPIUS_TOKEN in "
+        "~/.config/dev-org/keys.env and DEV_ORG_PROVIDER_TRIAL=1"
+    ),
 )
 
 
 @pytest.mark.live
 def test_targon_org_and_credits_are_readable() -> None:
     """The real Targon API answers and reports a balance (read-only)."""
-    token = _read_survivor_key("TARGON_API_KEY")
+    token = _read_targon_key()
     assert token, "TARGON_API_KEY present (guarded by pytestmark)"
     orgs = _http_json(f"{TARGON_API}/orgs", token=token)
     assert orgs is not None, "Targon API did not answer /orgs"
@@ -123,8 +135,8 @@ def test_hippius_quota_or_vms_are_readable() -> None:
     token = _read_hippius_key()
     assert token, "Hippius token present (guarded by pytestmark)"
     headers = {"User-Agent": "dev-org/0.1"}
-    data = _http_json(f"{HIPPIUS_API}/compute/quota/", token=token, headers_extra=headers)
+    data = _http_json(f"{HIPPIUS_API}/compute/quota/", token=token, scheme="Token", headers_extra=headers)
     if data is None:
-        data = _http_json(f"{HIPPIUS_API}/compute/vms/", token=token, headers_extra=headers)
+        data = _http_json(f"{HIPPIUS_API}/compute/vms/", token=token, scheme="Token", headers_extra=headers)
     assert data is not None, "Hippius API did not answer quota or vms"
     assert isinstance(data, (dict, list))  # a real, readable provider response

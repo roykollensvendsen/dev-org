@@ -88,16 +88,15 @@ class HippiusDecentralizedWorkProvider(_BaseDecentralizedSim):
 class WorkDispatcher:
     """Send scoped subtasks across decentralized providers, with fail-over (A69).
 
-    Mirrors how survivor-agent actually rents Targon/Hippius (bittensor-compute
-    skill): Targon is tried first, and after two failed starts in a row the
-    dispatcher moves to Hippius instead of retrying Targon. A failure in one
-    provider therefore never blocks another qualified provider's capacity.
+    Targon is tried first, and after two failed starts in a row the dispatcher
+    moves to Hippius instead of retrying Targon. A failure in one provider
+    therefore never blocks another qualified provider's capacity.
 
     The chosen provider's result is still untrusted until the caller verifies
     it; a good score grants no acceptance. Only approved artifacts are sent.
     """
 
-    #: How many failed starts in a row switch the primary (the skill's rule).
+    #: How many failed starts in a row switch the primary provider.
     SWITCH_AFTER_FAILURES = 2
 
     def __init__(
@@ -124,9 +123,8 @@ class WorkDispatcher:
 
         Returns the provider task id, or None when the selected provider cannot
         accept right now. A failed start increments the streak; once it reaches
-        the switch threshold the *next* send routes to the fallback provider,
-        exactly as survivor-agent stops retrying Targon after two failures and
-        goes to Hippius. A success resets the streak.
+        the switch threshold the *next* send routes to the fallback provider.
+        A success resets the streak.
         """
         provider = self._select()
         if provider.can_accept():
