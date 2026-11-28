@@ -18,6 +18,7 @@ from dev_org.providers.contracts import (
 from dev_org.providers.decentralized import (
     HippiusDecentralizedWorkProvider,
     TargonDecentralizedWorkProvider,
+    WorkDispatcher,
     verify_result,
 )
 from dev_org.providers.execution import (
@@ -47,6 +48,7 @@ __all__ = [
     "OrganizationFactory",
     "TargonDecentralizedWorkProvider",
     "Vm",
+    "WorkDispatcher",
     "WorkerPoolProvider",
     "WorkerPoolSpec",
     "verify_result",

@@ -32,6 +32,7 @@ from dev_org.providers import (
     KubernetesExecutionBackend,
     OrganizationFactory,
     TargonDecentralizedWorkProvider,
+    WorkDispatcher,
     WorkerPoolSpec,
     verify_result,
 )
@@ -52,14 +53,28 @@ PROFILE = ExecutionProfile(
 )
 
 
-def make_spec(*, nodes: int = 2, max_nodes: int = 4) -> WorkerPoolSpec:
-    """A minimal worker pool spec for the pool tests."""
+def make_spec(
+    *,
+    nodes: int = 2,
+    max_nodes: int = 4,
+    cost: dict[str, float] | None = None,
+) -> WorkerPoolSpec:
+    """A minimal worker pool spec for the pool tests.
+
+    ``cost`` carries the dollar/lifetime budget fields mirrored from how
+    Targon/Hippius are rented (ci_leie): rate per hour, lifetime seconds, and
+    the day/month caps. Omitted, the pool has no cost and no frame.
+    """
     return WorkerPoolSpec(
         node_count=nodes,
         capabilities=frozenset({"sandbox"}),
         network="prod",
         max_nodes=max_nodes,
         budget_frame=f"${max_nodes * 10}",
+        rate_usd_hour=(cost or {}).get("rate", 0.0),
+        lifetime_s=int((cost or {}).get("lifetime_s", 0)),
+        day_cap_usd=(cost or {}).get("day_cap", float("inf")),
+        month_cap_usd=(cost or {}).get("month_cap", float("inf")),
     )
 
 
@@ -92,6 +107,37 @@ def test_autoscaling_stops_at_the_budget_frame_cap():
     # Requesting far more than the budget frame allows must be capped.
     scaled = provider.autoscale(pool_id=pool, desired=100)
     assert scaled == 4  # capped at max_nodes == the budget frame
+
+
+def test_autoscaling_stops_at_the_dollar_time_budget_frame():
+    # Faithful to ci_leie (R-40): each machine's whole lifetime (rate * ttl)
+    # must fit under the day/month dollar cap. Two machines at $1/h for 1h
+    # cost $2, so a $1 day cap lets at most one start.
+    provider = CloudWorkerPoolProvider()
+    pool = provider.create_pool(
+        spec=make_spec(nodes=1, max_nodes=5, cost={"rate": 1.0, "lifetime_s": 3600, "day_cap": 1.0}),
+        idempotency_key="dollar-cap",
+    )
+    # Even though 4 more nodes are available (max_nodes=5), the dollar cap
+    # allows only the one already started: one more whole lifetime would pass $1.
+    assert provider.blocked(pool_id=pool, extra_nodes=1) == "day cap would be passed"
+    assert provider.autoscale(pool_id=pool, desired=5) == 1
+
+
+def test_a_machine_that_never_started_holds_no_lifetime():
+    # ci_leie rule: a failed start or orphan holds no lifetime against the cap,
+    # so it does not block a provider's stand-in. An unregistered orphan is a VM
+    # created but never started: reconciliation removes it (it costs nothing)
+    # and the cap stays free for a real machine.
+    provider = CloudWorkerPoolProvider()
+    pool = provider.create_pool(
+        spec=make_spec(nodes=2, max_nodes=4, cost={"rate": 10.0, "lifetime_s": 3600, "day_cap": 10.0}),
+        idempotency_key="no-lifetime",
+    )
+    assert provider.reconcile(pool_id=pool)  # an orphan that never started is cleaned
+    # Starting one real machine is allowed: its whole lifetime fits the $10 cap.
+    assert provider.autoscale(pool_id=pool, desired=3) >= 1
+    assert provider.blocked(pool_id=pool, extra_nodes=1) == "day cap would be passed"
 
 
 # 2. Two organizations from one template stay separate (A66) ----------------
@@ -257,3 +303,28 @@ def test_a_failure_in_one_provider_does_not_block_other_qualified_capacity():
     task = hippius.submit(subtask="ok task", approved_artifacts=[])
     result, _digest = hippius.result(task)
     assert result == "other output"
+
+
+def test_fail_over_moves_to_the_fallback_after_two_failed_starts():
+    # Faithful to bittensor-compute: Targon is tried first, and after two
+    # failed starts in a row the work moves to Hippius instead of retrying
+    # Targon (A69: a failure in one provider does not block other capacity).
+    targon = TargonDecentralizedWorkProvider()
+    hippius = HippiusDecentralizedWorkProvider(correct_result="stand-in answer")
+    dispatcher = WorkDispatcher(primary=targon, fallback=hippius)
+    assert dispatcher.prefers_fallback() is False  # Targon is the first choice
+
+    # Targon is down for its first two starts; both fail and count the streak.
+    targon.down = True
+    first = dispatcher.send(subtask="job", approved_artifacts=[])
+    second = dispatcher.send(subtask="job", approved_artifacts=[])
+    assert first is None
+    assert second is None
+    # After two failed starts the dispatcher is primed to route to Hippius.
+    assert dispatcher.prefers_fallback() is True
+    standby = dispatcher.send(subtask="job", approved_artifacts=[])
+    assert standby is not None
+    assert standby.startswith(f"{hippius.name}-")
+    # The fallback's result is still verified independently.
+    text, digest = hippius.result(standby)
+    assert verify_result(expectation_sha256=digest, candidate=text) is True
