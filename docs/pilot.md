@@ -88,7 +88,12 @@ registry as live tests:
   no Podman.
 - **Real GitHub board/Git/CI (A41).** The deterministic doubles prove the
   ordering; the real gateway needs the GitHub App install and CI, and a
-  live run opens a real PR waiting on real checks.
+  live run opens a real PR waiting on real checks. A read-only live probe
+  now exists first: `tests/test_live_pilot.py` (marked `live`) fetches a
+  real issue over the authenticated GitHub read and runs it through the
+  core — no PR, no write, no model cost. It is the running verification
+  that the live GitHub contact and the core line up before a real PR is
+  ever opened.
 - **Later-issue subsystems.** Durable-operation export (A28), provider
   quota handling (A52), the worker message channel (A53), knowledge memory
   (A56), and the extension manifest (A57) each need their own delivery and
