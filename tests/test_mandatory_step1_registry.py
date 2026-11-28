@@ -165,8 +165,8 @@ STEP4_EVIDENCE: dict[str, str] = {
 }
 
 #: Evidence per step-5 test delivered so far (Codex in #31, Redmine in
-#: #59, startup in #60, test planner in #61). The rest of step 5
-#: (extensions, providers) arrives with issues #62-#63.
+#: #59, startup in #60, test planner in #61, extensions/A2A in #62). The
+#: rest of step 5 (providers) arrives with issue #63.
 STEP5_EVIDENCE: dict[str, str] = {
     "A06": "tests/test_test_planner.py (identical orders share one run; priority builds nothing)",
     "A07": "tests/test_test_planner.py (shared header mutation covers both sides)",
@@ -174,6 +174,8 @@ STEP5_EVIDENCE: dict[str, str] = {
     "A13": "tests/test_test_planner.py (CI cost counted once with two consumers)",
     "A15": "tests/test_startup.py (rerunnable, engine-independent, preserves customizations)",
     "A50": "tests/test_agent_adapter_contract.py (unmodified CLI, ChatGPT login, no API key)",
+    "A58": "tests/test_extensions.py (lifecycle statuses; deputy take-over; deprecation notifies)",
+    "A71": "tests/test_extensions.py (A2A Agent Card; unknown identity rejected; no authority change)",
 }
 
 #: Every evidence map, keyed by the step it covers.
@@ -215,7 +217,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
-    5: "A58/A66-A69/A71 arrive with issues #62-#63 (extensions, providers)",
+    5: "A66-A69 arrive with issue #63 (external compute and decentralized providers)",
 }
 
 
