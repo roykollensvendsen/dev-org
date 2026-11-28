@@ -17,6 +17,7 @@ from dev_org.core.change_frame import (
 )
 from dev_org.core.ci_waiting import CiWaiter
 from dev_org.core.evaluation import CountingCi, ReplayEvaluator, ReplayEvent, ReplayReport
+from dev_org.core.extensions import Extension, ExtensionLifecycle
 from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.core.node_lease import LeaseRefusedError, LeaseState, NodeLeaseService
@@ -42,6 +43,7 @@ __all__ = [
     "ActivationRefusedError",
     "ActivationService",
     "ActiveVersion",
+    "AgentCard",
     "CandidateEnvironment",
     "CandidateSnapshot",
     "ChangeDecision",
@@ -52,6 +54,8 @@ __all__ = [
     "ContractChange",
     "CountingCi",
     "Diff",
+    "Extension",
+    "ExtensionLifecycle",
     "HandoverError",
     "HandoverService",
     "ImprovementBudget",
