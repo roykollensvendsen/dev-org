@@ -32,6 +32,7 @@ from dev_org.core.snapshot import (
     SnapshotService,
 )
 from dev_org.core.startup import ProjectMapping, RepoFacts, StartupAdapter, StartupOperation
+from dev_org.core.test_planner import CheckReuse, Diff, MutationPlan, SelectionPlanner, TestSelection
 from dev_org.state.models import Reservation, Task
 
 __all__ = [
@@ -46,14 +47,17 @@ __all__ = [
     "ChangeDecision",
     "ChangeFrame",
     "ChangeProposal",
+    "CheckReuse",
     "CiWaiter",
     "ContractChange",
     "CountingCi",
+    "Diff",
     "HandoverError",
     "HandoverService",
     "ImprovementBudget",
     "LeaseRefusedError",
     "LeaseState",
+    "MutationPlan",
     "NodeLeaseService",
     "NodeRegistry",
     "NodeStatus",
@@ -69,6 +73,7 @@ __all__ = [
     "RepoFacts",
     "Reservation",
     "Scheduler",
+    "SelectionPlanner",
     "Snapshot",
     "SnapshotRefusedError",
     "SnapshotService",
@@ -77,6 +82,7 @@ __all__ = [
     "Task",
     "TaskLifecycle",
     "TaskRequirements",
+    "TestSelection",
     "WorkerNode",
     "Workspace",
     "WorkspaceConflictError",
