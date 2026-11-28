@@ -94,7 +94,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A20": "live: tests/test_runtime_podman.py live markers (engine-independent sandbox probe)",
     "A21": "tests/test_runtime_podman.py (refuse a profile the backend cannot enforce)",
     "A22": "tests/test_policy_engine.py + tests/test_gateway_service.py (revocation/lost answer)",
-    "A25": "tests/test_state_contracts.py + docs/pilot.md (component basis for the pilot repo)",
+    "A25": "tests/test_state_contracts.py + tests/test_startup.py + docs/pilot.md (component basis)",
     "A27": "tests/test_first_workflow.py (timeline ties events to one task/attempt)",
     "A28": "live: needs the durable-operation export path (later issue; see docs/pilot.md)",
     "A32": "tests/test_queue_lifecycle.py::test_a_stale_owner_cannot_publish_after_lease_expiry",
@@ -165,10 +165,11 @@ STEP4_EVIDENCE: dict[str, str] = {
 }
 
 #: Evidence per step-5 test delivered so far (Codex in #31, Redmine in
-#: #59). The rest of step 5 (startup, tests, extensions, providers) arrives
-#: with issues #60-#63.
+#: #59, startup in #60). The rest of step 5 (tests, extensions, providers)
+#: arrives with issues #61-#63.
 STEP5_EVIDENCE: dict[str, str] = {
     "A09": "tests/test_redmine.py (move from Redmine preserves mapping and priority)",
+    "A15": "tests/test_startup.py (rerunnable, engine-independent, preserves customizations)",
     "A50": "tests/test_agent_adapter_contract.py (unmodified CLI, ChatGPT login, no API key)",
 }
 

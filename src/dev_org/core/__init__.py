@@ -31,6 +31,7 @@ from dev_org.core.snapshot import (
     SnapshotRefusedError,
     SnapshotService,
 )
+from dev_org.core.startup import ProjectMapping, RepoFacts, StartupAdapter, StartupOperation
 from dev_org.state.models import Reservation, Task
 
 __all__ = [
@@ -60,15 +61,19 @@ __all__ = [
     "NodeStatusView",
     "ParallelAssignmentService",
     "PolicyController",
+    "ProjectMapping",
     "PromotionService",
     "ReplayEvaluator",
     "ReplayEvent",
     "ReplayReport",
+    "RepoFacts",
     "Reservation",
     "Scheduler",
     "Snapshot",
     "SnapshotRefusedError",
     "SnapshotService",
+    "StartupAdapter",
+    "StartupOperation",
     "Task",
     "TaskLifecycle",
     "TaskRequirements",
