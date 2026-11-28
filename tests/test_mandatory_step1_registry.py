@@ -152,15 +152,15 @@ STEP3_EVIDENCE: dict[str, str] = {
     "A60": "tests/test_change_frame.py (unknown risk quarantined; outside frame rejected)",
 }
 
-#: Evidence per step-4 test delivered so far (issues #49-#52). The keys come
-#: from the spec's "From step | 4 |" row; the rest (A24) arrives with issue
-#: #53.
+#: Evidence per step-4 test. All "From step | 4 |" tests are now covered
+#: (issues #49-#53).
 STEP4_EVIDENCE: dict[str, str] = {
     "A04": "tests/test_parallel.py (a third issue completes; an answer wakes only its issue)",
     "A08": "tests/test_snapshot.py (move preserves secured code, PR, wait, issue id)",
+    "A24": "tests/test_node_status.py (recovery cannot re-introduce revoked rights)",
     "A26": "tests/test_parallel.py (shared contract: one responsibility point, transition plan)",
     "A63": "tests/test_nodes.py + tests/test_node_lease.py + tests/test_parallel.py",
-    "A64": "tests/test_nodes.py (fresh qualified nodes only; unknown is not zero)",
+    "A64": "tests/test_nodes.py + tests/test_node_status.py (fresh qualified nodes only; status visible)",
     "A65": "tests/test_node_lease.py (one active owner; old process cannot publish)",
 }
 
@@ -210,7 +210,6 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
-    4: "A24 arrives with issue #53 (node status and rights)",
     5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
 }
 

@@ -20,6 +20,7 @@ from dev_org.core.evaluation import CountingCi, ReplayEvaluator, ReplayEvent, Re
 from dev_org.core.handover import HandoverError, HandoverService
 from dev_org.core.lifecycle import TaskLifecycle
 from dev_org.core.node_lease import LeaseRefusedError, LeaseState, NodeLeaseService
+from dev_org.core.node_status import NodeStatusService, NodeStatusView
 from dev_org.core.nodes import NodeRegistry, NodeStatus, TaskRequirements, WorkerNode
 from dev_org.core.parallel import ContractChange, ParallelAssignmentService, Workspace, WorkspaceConflictError
 from dev_org.core.scheduler import ImprovementBudget, Scheduler
@@ -55,6 +56,8 @@ __all__ = [
     "NodeLeaseService",
     "NodeRegistry",
     "NodeStatus",
+    "NodeStatusService",
+    "NodeStatusView",
     "ParallelAssignmentService",
     "PolicyController",
     "PromotionService",
