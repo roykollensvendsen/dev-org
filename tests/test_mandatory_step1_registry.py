@@ -175,6 +175,10 @@ STEP5_EVIDENCE: dict[str, str] = {
     "A15": "tests/test_startup.py (rerunnable, engine-independent, preserves customizations)",
     "A50": "tests/test_agent_adapter_contract.py (unmodified CLI, ChatGPT login, no API key)",
     "A58": "tests/test_extensions.py (lifecycle statuses; deputy take-over; deprecation notifies)",
+    "A66": "tests/test_providers.py (pool idempotent; orphan reconciled; autoscale capped; orgs separate)",
+    "A67": "tests/test_providers.py (one profile two backends; missing capability blocks; checkpoint move)",
+    "A68": "tests/test_providers.py (direct without k8s/terraform; k8s/iac when qualified; secrets stay out)",
+    "A69": "tests/test_providers.py (two DWP adapters; untrusted verified; confidential refused; isolated)",
     "A71": "tests/test_extensions.py (A2A Agent Card; unknown identity rejected; no authority change)",
 }
 
@@ -216,9 +220,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: spec lists for the step is delivered here, and the gap is a real, named
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
-PARTIAL_STEPS: dict[int, str] = {
-    5: "A66-A69 arrive with issue #63 (external compute and decentralized providers)",
-}
+PARTIAL_STEPS: dict[int, str] = {}
 
 
 def test_evidence_keys_match_the_canonical_spec_set():
