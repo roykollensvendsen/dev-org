@@ -31,6 +31,7 @@ class _BaseDecentralizedSim:
         self._tasks: dict[str, str] = {}
         self._expected = correct_result
         self.refused_confidential: list[str] = []
+        self.down: bool = False
 
     def submit(self, *, subtask: str, approved_artifacts: list[str]) -> str:
         """Receive a scoped subtask, but never confidential, non-approved data.
@@ -51,6 +52,10 @@ class _BaseDecentralizedSim:
         task_id = f"{self.name}-{uuid.uuid4().hex[:8]}"
         self._tasks[task_id] = subtask
         return task_id
+
+    def can_accept(self) -> bool:
+        """Whether the provider is up (a start can succeed)."""
+        return not self.down
 
     def result(self, task_id: str) -> tuple[str, str]:
         """Return the provider's (result, sha256) pair, still untrusted (A69).
@@ -80,6 +85,60 @@ class HippiusDecentralizedWorkProvider(_BaseDecentralizedSim):
     name = "hippius"
 
 
+class WorkDispatcher:
+    """Send scoped subtasks across decentralized providers, with fail-over (A69).
+
+    Mirrors how survivor-agent actually rents Targon/Hippius (bittensor-compute
+    skill): Targon is tried first, and after two failed starts in a row the
+    dispatcher moves to Hippius instead of retrying Targon. A failure in one
+    provider therefore never blocks another qualified provider's capacity.
+
+    The chosen provider's result is still untrusted until the caller verifies
+    it; a good score grants no acceptance. Only approved artifacts are sent.
+    """
+
+    #: How many failed starts in a row switch the primary (the skill's rule).
+    SWITCH_AFTER_FAILURES = 2
+
+    def __init__(
+        self,
+        *,
+        primary: _BaseDecentralizedSim,
+        fallback: _BaseDecentralizedSim,
+    ) -> None:
+        """Bind the dispatcher to a primary (Targon) and a fallback (Hippius)."""
+        self._primary = primary
+        self._fallback = fallback
+        self._consecutive_failures = 0
+
+    def prefers_fallback(self) -> bool:
+        """Whether the dispatcher now routes to the fallback provider."""
+        return self._consecutive_failures >= self.SWITCH_AFTER_FAILURES
+
+    def _select(self) -> _BaseDecentralizedSim:
+        """Pick primary or fallback by the fail-over rule."""
+        return self._fallback if self.prefers_fallback() else self._primary
+
+    def send(self, *, subtask: str, approved_artifacts: list[str]) -> str | None:
+        """Send a scoped, approved subtask, failing over after repeated starts.
+
+        Returns the provider task id, or None when the selected provider cannot
+        accept right now. A failed start increments the streak; once it reaches
+        the switch threshold the *next* send routes to the fallback provider,
+        exactly as survivor-agent stops retrying Targon after two failures and
+        goes to Hippius. A success resets the streak.
+        """
+        provider = self._select()
+        if provider.can_accept():
+            task_id = provider.submit(subtask=subtask, approved_artifacts=approved_artifacts)
+            self._consecutive_failures = 0  # this provider succeeded
+            return task_id
+        # The selected provider is down: this start fails. After the switch
+        # threshold the next call moves to the fallback provider.
+        self._consecutive_failures += 1
+        return None
+
+
 def verify_result(*, expectation_sha256: str, candidate: str) -> bool:
     """Independently verify an untrusted provider result by its hash (A69).
 
@@ -94,6 +153,7 @@ def verify_result(*, expectation_sha256: str, candidate: str) -> bool:
 __all__ = [
     "HippiusDecentralizedWorkProvider",
     "TargonDecentralizedWorkProvider",
+    "WorkDispatcher",
     "_BaseDecentralizedSim",
     "verify_result",
 ]

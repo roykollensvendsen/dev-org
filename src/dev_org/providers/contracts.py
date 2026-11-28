@@ -70,13 +70,26 @@ class CapabilityReport:
 
 @dataclass(frozen=True)
 class WorkerPoolSpec:
-    """Desired worker pool capacity and its cost frame (section 7.2)."""
+    """Desired worker pool capacity and its cost frame (section 7.2).
+
+    Mirrors the survivor-agent cost axioms (R-40, ci_leie): a machine may
+    start only when its whole lifetime fits under both the per-day and the
+    per-month dollar cap, and a machine that never started holds no lifetime.
+    ``rate_usd_hour`` and ``lifetime_s`` are the per-worker cost model;
+    ``day_cap_usd`` and ``month_cap_usd`` are the budget frame that
+    autoscaling and creation must never pass (A66).
+    """
 
     node_count: int
     capabilities: frozenset[str]
     network: str
     max_nodes: int
     budget_frame: str  # an upper bound; autoscaling must never exceed it
+    # -- cost model, faithful to how Targon/Hippius are rented --
+    rate_usd_hour: float = 0.0
+    lifetime_s: int = 0
+    day_cap_usd: float = float("inf")
+    month_cap_usd: float = float("inf")
 
 
 class _SecretsBoundary:
