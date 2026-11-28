@@ -86,7 +86,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A01": "tests/test_first_workflow.py + tests/test_gateway_service.py (re-find the same PR once)",
     "A02": "tests/test_ci_waiting.py + tests/test_first_workflow.py (duplicate event wakes at most once)",
     "A05": "tests/test_queue_lifecycle.py + tests/test_node_lease.py (lease expiry; active owner only)",
-    "A10": "tests/test_gateway_service.py (manual priority preserved while PR link is recorded)",
+    "A10": "tests/test_gateway_service.py + tests/test_redmine.py (priority preserved; both board adapters)",
     "A11": "tests/test_ci_waiting.py::test_a11_zero_model_calls_while_waiting",
     "A12": "tests/test_queue_lifecycle.py (no model call on an empty/waiting queue)",
     "A17": "tests/test_engine_independence.py + tests/test_agent_adapter_contract.py (all qualified engines)",
@@ -164,10 +164,11 @@ STEP4_EVIDENCE: dict[str, str] = {
     "A65": "tests/test_node_lease.py (one active owner; old process cannot publish)",
 }
 
-#: Evidence per step-5 test that this early delivery covers (Codex, the
-#: third engine). A50 is the only step-5 test this issue delivers; the rest
-#: of step 5 (Redmine, migration, reuse) stays in its own epic.
+#: Evidence per step-5 test delivered so far (Codex in #31, Redmine in
+#: #59). The rest of step 5 (startup, tests, extensions, providers) arrives
+#: with issues #60-#63.
 STEP5_EVIDENCE: dict[str, str] = {
+    "A09": "tests/test_redmine.py (move from Redmine preserves mapping and priority)",
     "A50": "tests/test_agent_adapter_contract.py (unmodified CLI, ChatGPT login, no API key)",
 }
 
@@ -210,7 +211,7 @@ def _test_bodies_exist(symbol: str) -> bool:
 #: one. A partial step must still evidence every test it claims, and its
 #: reason must point at where the rest lives. An empty partial step is a lie.
 PARTIAL_STEPS: dict[int, str] = {
-    5: "the rest of step 5 (Redmine, migration, reuse) is its own epic, #16",
+    5: "A06/A07/A13/A15/A25/A58/A66-A69/A71 arrive with issues #60-#63",
 }
 
 
