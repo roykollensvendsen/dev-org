@@ -103,7 +103,7 @@ STEP1_EVIDENCE: dict[str, str] = {
     "A38": "tests/test_gateway_service.py (identical retry, one effect)",
     "A39": "live: needs the durable adapter (db stop between work and push; docs/pilot.md)",
     "A40": "live: tests/test_runtime_podman.py live markers (sandbox boundary probe)",
-    "A41": "live: needs the real GitHub gateway (A01/A19/A22 cover the deterministic parts; docs/pilot.md)",
+    "A41": "live: tests/test_live_pilot.py (read-only real issue); A01/A19/A22 cover determinism",
     "A42": "tests/test_ci_waiting.py::test_a42_reconciliation_finds_a_result_after_a_dropped_event",
     "A43": "tests/test_candidate_environment.py (candidate cannot touch the active queue)",
     "A44": "tests/test_gateway_service.py (bootstrap stays in PR mode: merge is denied)",
